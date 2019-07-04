@@ -5,5 +5,5 @@ Thanks to [@chagmgang](https://github.com/chagmgang) for providing initial basel
 
 And another thanks to [@MorvanZhou](https://github.com/MorvanZhou) for DQN part. (https://github.com/MorvanZhou/PyTorch-Tutorial/blob/master/tutorial-contents-notebooks/405_DQN_Reinforcement_learning.ipynb)
 
-@batuhan-ince & @EmircanKilickaya
+[@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
 
