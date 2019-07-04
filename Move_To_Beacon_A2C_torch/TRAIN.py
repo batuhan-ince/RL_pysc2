@@ -29,7 +29,7 @@ _NO_OP           = actions.FUNCTIONS.no_op.id
 _ATTACK_MINIMAP = actions.FUNCTIONS.Attack_minimap.id
 _SELECT_ALL  = [0]
 _NOT_QUEUED  = [0]
-step_mul = 4
+step_mul = 16
 FLAGS = flags.FLAGS
 EPISODES = 10000
 

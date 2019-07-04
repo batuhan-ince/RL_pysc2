@@ -11,7 +11,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
 #define constants
-N_STATES = 2
+N_STATES = 4
 N_ACTIONS = 16
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 LR = 0.01
