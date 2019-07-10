@@ -4,7 +4,7 @@ from pysc2.env import sc2_env, environment
 from pysc2.lib import actions, features
 import torch
 from ACTION import actAgent2Pysc2, no_operation
-from STATES import obs2state, obs2distance
+from STATES import calc_distance
 import numpy as np
 import time
 from DQN import DQN, MEMORY_CAPACITY
@@ -23,7 +23,7 @@ _NO_OP           = actions.FUNCTIONS.no_op.id
 _ATTACK_MINIMAP = actions.FUNCTIONS.Attack_minimap.id
 _SELECT_ALL  = [0]
 _NOT_QUEUED  = [0]
-step_mul = 16
+step_mul = 8
 FLAGS = flags.FLAGS
 EPISODES = 100000
 
@@ -36,18 +36,18 @@ def train():
                         agent_interface_format=sc2_env.AgentInterfaceFormat(
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
         dqn = DQN()         #initializing DQN
+        #dqn = torch.load("dqnAgent_Trained_Model_20190710-181231  1001.pth")
         for episodes in range(EPISODES):
             done = False
             obs = env.reset()
-            state = np.array(obs2state(obs))
+            _,__,___,state = calc_distance(obs)
             print('episode start')
             global_step = 0
             reward = 0 # step reward
             cum_rew = 0 # episodic reward
-            first_distance = obs2distance(obs)
+            score_cum = 0		 
             while not done:
                 global_step += 1
-                time.sleep(0.2)
                 #selecting marines in while loop
                 while not 331 in obs[0].observation["available_actions"]:
                     actions = actAgent2Pysc2(100, obs)
@@ -55,31 +55,27 @@ def train():
                 action = dqn.choose_action(state) # choosing the action according to DQN
                 actions = actAgent2Pysc2(action, obs) # Calling action from ACTION.py
                 obs = env.step(actions=[actions])
-                distance = obs2distance(obs)
+                _, __, distance, next_state = calc_distance(obs)
                 if global_step == 1:
                     pre_distance = distance
-                next_state = obs2state(obs)
+
                 #Modifying reward to solve sparse reward issue
-                reward = -(distance * 20)
-                reward2 = -(distance - pre_distance) * 20 / first_distance
-                if distance < 0.03:
-                    reward = 10
-                    print('+10 reward recieved')
-                    done = True
+                reward = -(distance - pre_distance)
+                if obs[0].reward == 1 :
+                    reward = 100 
+          
                 #Detecting the end of the episode
                 if obs[0].step_type == environment.StepType.LAST:
-                    reward = -10
-                    print('-10 reward recieved')
                     done = True
-                rwd = reward2 + reward
-                dqn.store_transition(state, action, rwd, next_state)
+                dqn.store_transition(state, action, reward, next_state)
                 if done == True:
                     if dqn.memory_counter > MEMORY_CAPACITY:
                         dqn.learn()
-                cum_rew += reward + reward2
+                cum_rew += reward
+                score_cum += obs[0].reward
                 state = next_state
                 pre_distance = distance
-            print("episode: ", episodes, "reward: ", cum_rew)
+            print("episode: ", episodes, "reward: ", cum_rew, "score: ", score_cum)
             #saving the net
             if episodes%1000==1:
                 timestr = time.strftime("%Y%m%d-%H%M%S")

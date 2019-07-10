@@ -6,6 +6,7 @@ from pysc2.env import sc2_env
 from pysc2.lib import actions, features
 import numpy as np
 import matplotlib.pyplot as plt
+import math
 
 # Define the constant
 _PLAYER_RELATIVE = features.SCREEN_FEATURES.player_relative.index
@@ -24,21 +25,38 @@ _RALLY_UNITS_SCREEN = actions.FUNCTIONS.Rally_Units_screen.id
 _SELECT_ALL  = [0]
 _NOT_QUEUED  = [0]
 
-def obs2state(obs):
-    marin_y, marin_x = (obs[0].observation.feature_screen.player_relative == friendly).nonzero()
-    beacon_y, beacon_x = (obs[0].observation.feature_screen.player_relative == neutral).nonzero()
-    marin_x, marin_y, beacon_x, beacon_y = np.mean(marin_x), np.mean(marin_y), np.mean(beacon_x), np.mean(beacon_y)
-    marine_xy = [marin_x, marin_y]
-    beacon_xy = [beacon_x, beacon_y]
-    state = np.dstack((marine_xy, beacon_xy)).reshape(4)
-    return state
+def xy_locs(mask):
+  """Mask should be a set of bools from comparison with a feature layer."""
+  y, x = mask.nonzero()
+  return list(zip(x, y))
 
+def calc_distance(observation):
+    actual_obs = observation[0]
+    scrn_player = actual_obs.observation.feature_screen.player_relative
+    scrn_select = actual_obs.observation.feature_screen.selected
+    scrn_density = actual_obs.observation.feature_screen.unit_density
 
-def obs2distance(obs):
-    marin_y, marin_x = (obs[0].observation.feature_screen.player_relative == friendly).nonzero()
-    beacon_y, beacon_x = (obs[0].observation.feature_screen.player_relative == neutral).nonzero()
-    marin_x, marin_y, beacon_x, beacon_y = np.mean(marin_x), np.mean(marin_y), np.mean(beacon_x), np.mean(beacon_y)
+    state_added = scrn_select + scrn_density
 
-    now_distance = ((marin_x/63 - beacon_x/63)**2 + (marin_y/63 - beacon_y/63)**2)
+    marine_center = np.mean(xy_locs(scrn_player == 1), axis=0).round()
 
-    return now_distance
+    # first step
+    if np.sum(scrn_select) == 0:
+        marine_center = np.mean(xy_locs(scrn_player == 1), axis=0).round()
+        # marine behind beacon
+        if isinstance(marine_center, float):
+            marine_center = np.mean(xy_locs(state_added == 2), axis=0).round()
+    else:
+        # normal navigation
+        marine_center = np.mean(xy_locs(state_added == 2), axis=0).round()
+        if isinstance(marine_center, float):
+            marine_center = np.mean(xy_locs(state_added == 3), axis=0).round()
+
+    beacon_center = np.mean(xy_locs(scrn_player == 3), axis=0).round()
+
+    distance = math.hypot(beacon_center[0] - marine_center[0],
+                          beacon_center[1] - marine_center[1])
+
+    state = np.dstack((marine_center, beacon_center)).reshape(4)
+
+    return beacon_center, marine_center, distance, state

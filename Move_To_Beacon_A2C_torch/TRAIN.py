@@ -5,7 +5,7 @@ from pysc2.lib import actions, features
 import torch
 import matplotlib.pyplot as plt
 from ACTION import actAgent2Pysc2, no_operation
-from STATE import obs2state, obs2distance
+from STATE import calc_distance
 import numpy as np
 import random
 import tensorflow as tf
@@ -29,7 +29,7 @@ _NO_OP           = actions.FUNCTIONS.no_op.id
 _ATTACK_MINIMAP = actions.FUNCTIONS.Attack_minimap.id
 _SELECT_ALL  = [0]
 _NOT_QUEUED  = [0]
-step_mul = 16
+step_mul = 8
 FLAGS = flags.FLAGS
 EPISODES = 10000
 
@@ -43,15 +43,14 @@ def train():
         for episodes in range(EPISODES):
             done = False
             obs = env.reset()
-            state = np.array(obs2state(obs))
+            _,__,___,state = calc_distance(obs)
             print('episode start')
             global_step = 0
             reward = 0
             cum_rew = 0
-            first_distance = obs2distance(obs)
+            score_cum = 0
             while not done:
                 global_step += 1
-                time.sleep(0.2)
 		#selecting marine
                 while not 331 in obs[0].observation["available_actions"]:
                     actions = actAgent2Pysc2(100, obs)
@@ -59,34 +58,23 @@ def train():
                 _, action, __ = a2c.choose_action(state)
                 actions = actAgent2Pysc2(action, obs)
                 obs = env.step(actions=[actions])
-                distance = obs2distance(obs)
+                _, __, distance, next_state = calc_distance(obs)
                 if global_step == 1:
                     pre_distance = distance
-                next_state = obs2state(obs)
-		#reward enginnering part
-                reward = -(distance * 20)
-                reward2 = -(distance - pre_distance) * 20 / first_distance
-                if distance < 0.03:
-                    reward = 10
-                    print('+10 reward recieved')
-                    done = True
+		        #reward enginnering part
+                reward = -(distance - pre_distance)
+                if obs[0].reward == 1:
+                    reward = 100
 
                 if obs[0].step_type == environment.StepType.LAST:
-                    reward = -10
-                    print('-10 reward recieved')
-                    done = True
-
+                        done = True
                 a2c.learn(reward ,state, action)
                 cum_rew = reward + cum_rew
-
-                if distance < 0.03 or global_step == 200:
-                    if cum_rew != 10 or cum_rew != 10.0:
-                        rwd.append(cum_rew)
-                    break
+                score_cum += obs[0].reward
                 state = next_state
                 pre_distance = distance
 
-            print("episode: ", episodes, "reward: ", cum_rew)
+            print("episode: ", episodes, "reward: ", cum_rew, "score: ", score_cum)
             if episodes%1000==1:
                 timestr = time.strftime("%Y%m%d-%H%M%S")
                 nn_filename = "a2cAgent_Trained_Model_" + timestr + "  "+str(episodes)+ ".pth"

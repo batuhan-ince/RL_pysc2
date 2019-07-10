@@ -20,19 +20,19 @@ class Actor_Net(nn.Module):
     def __init__(self, ):
         super(Actor_Net, self).__init__()
         
-        self.fc1 = nn.Linear(N_STATES, 30)
+        self.fc1 = nn.Linear(N_STATES, 300)
         nn.init.xavier_uniform(self.fc1.weight)
         self.fc1.bias.data.fill_(0.01)
         
-        self.fc2 = nn.Linear(30, 30)
+        self.fc2 = nn.Linear(300, 150)
         nn.init.xavier_uniform(self.fc2.weight)
         self.fc2.bias.data.fill_(0.01)
         
-        self.fc3 = nn.Linear(30, 30)
+        self.fc3 = nn.Linear(150, 75)
         nn.init.xavier_uniform(self.fc3.weight)
         self.fc3.bias.data.fill_(0.01)
         
-        self.out = nn.Linear(30, N_ACTIONS)
+        self.out = nn.Linear(75, N_ACTIONS)
         nn.init.xavier_uniform(self.out.weight)
 
     def forward(self, x):
@@ -49,20 +49,20 @@ class Actor_Net(nn.Module):
 class Critic_Net(nn.Module):
     def __init__(self, ):
         super(Critic_Net, self).__init__()
-        
-        self.fc1 = nn.Linear(N_STATES, 30)
+
+        self.fc1 = nn.Linear(N_STATES, 300)
         nn.init.xavier_uniform(self.fc1.weight)
         self.fc1.bias.data.fill_(0.01)
-        
-        self.fc2 = nn.Linear(30, 30)
+
+        self.fc2 = nn.Linear(300, 150)
         nn.init.xavier_uniform(self.fc2.weight)
         self.fc2.bias.data.fill_(0.01)
-        
-        self.fc3 = nn.Linear(30, 30)
+
+        self.fc3 = nn.Linear(150, 75)
         nn.init.xavier_uniform(self.fc3.weight)
         self.fc3.bias.data.fill_(0.01)
-        
-        self.out = nn.Linear(30, N_ACTIONS)
+
+        self.out = nn.Linear(75, N_ACTIONS)
         nn.init.xavier_uniform(self.out.weight)
 
     def forward(self, x):

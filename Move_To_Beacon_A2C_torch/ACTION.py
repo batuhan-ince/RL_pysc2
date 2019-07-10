@@ -4,6 +4,7 @@ from pysc2.env import sc2_env
 from pysc2.lib import actions, features
 import matplotlib.pyplot as plt
 import numpy as np
+from STATE import calc_distance
 
 
 
@@ -28,43 +29,41 @@ def no_operation(obs):
     return action
 
 def move_unit(obs, mode):
-
-    selected_unit_position_y, selected_unit_position_x = (
-            obs[0].observation.feature_screen.selected == True).nonzero()
-    target_x, target_y = np.mean(selected_unit_position_x), np.mean(selected_unit_position_y)
+    _, marine_center, __, ___ = calc_distance(obs)
+    target_x, target_y = marine_center
 
     if mode == 1:   #up
-        dest_x, dest_y = np.clip(target_x, 0, 63), np.clip(target_y - 50, 0, 63)
+        dest_x, dest_y = np.clip(target_x, 0, 63), np.clip(target_y - 10, 0, 63)
     elif mode == 2: #down
-        dest_x, dest_y = np.clip(target_x, 0, 63), np.clip(target_y + 50, 0, 63)
+        dest_x, dest_y = np.clip(target_x, 0, 63), np.clip(target_y + 10, 0, 63)
     elif mode == 3: #left
-        dest_x, dest_y = np.clip(target_x - 50, 0, 63), np.clip(target_y, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 10, 0, 63), np.clip(target_y, 0, 63)
     elif mode == 4: #right
-        dest_x, dest_y = np.clip(target_x + 50, 0, 63), np.clip(target_y, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 10, 0, 63), np.clip(target_y, 0, 63)
     elif mode == 5: 
-        dest_x, dest_y = np.clip(target_x + 50, 0, 63), np.clip(target_y+50, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 10, 0, 63), np.clip(target_y+10, 0, 63)
     elif mode == 6:  
-        dest_x, dest_y = np.clip(target_x - 50, 0, 63), np.clip(target_y-50, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 10, 0, 63), np.clip(target_y-10, 0, 63)
     elif mode == 7: 
-        dest_x, dest_y = np.clip(target_x + 50, 0, 63), np.clip(target_y-50, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 10, 0, 63), np.clip(target_y-10, 0, 63)
     elif mode == 8:  
-        dest_x, dest_y = np.clip(target_x - 50, 0, 63), np.clip(target_y+50, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 10, 0, 63), np.clip(target_y+10, 0, 63)
     elif mode == 9: 
-        dest_x, dest_y = np.clip(target_x + 50, 0, 63), np.clip(target_y+25, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 10, 0, 63), np.clip(target_y+5, 0, 63)
     elif mode == 10: 
-        dest_x, dest_y = np.clip(target_x + 25, 0, 63), np.clip(target_y+50, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 5, 0, 63), np.clip(target_y+10, 0, 63)
     elif mode == 11: 
-        dest_x, dest_y = np.clip(target_x - 25, 0, 63), np.clip(target_y-50, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 5, 0, 63), np.clip(target_y-10, 0, 63)
     elif mode == 12: 
-        dest_x, dest_y = np.clip(target_x - 50, 0, 63), np.clip(target_y-25, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 10, 0, 63), np.clip(target_y-5, 0, 63)
     elif mode == 13:  
-        dest_x, dest_y = np.clip(target_x + 25, 0, 63), np.clip(target_y-50, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 5, 0, 63), np.clip(target_y-10, 0, 63)
     elif mode == 14:  
-        dest_x, dest_y = np.clip(target_x + 50, 0, 63), np.clip(target_y-25, 0, 63)
+        dest_x, dest_y = np.clip(target_x + 10, 0, 63), np.clip(target_y-5, 0, 63)
     elif mode == 15: 
-        dest_x, dest_y = np.clip(target_x - 25, 0, 63), np.clip(target_y+50, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 5, 0, 63), np.clip(target_y+10, 0, 63)
     elif mode == 16: 
-        dest_x, dest_y = np.clip(target_x - 50, 0, 63), np.clip(target_y+25, 0, 63)
+        dest_x, dest_y = np.clip(target_x - 10, 0, 63), np.clip(target_y+5, 0, 63)
 
     action = actions.FunctionCall(_MOVE_SCREEN, [_NOT_QUEUED, [dest_x, dest_y]])
 

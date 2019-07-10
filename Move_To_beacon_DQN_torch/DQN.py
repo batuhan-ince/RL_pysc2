@@ -10,8 +10,8 @@ LR = 0.01                   # learning rate
 EPSILON = 0.9               # greedy policy
 GAMMA = 0.9                 # reward discount
 TARGET_REPLACE_ITER = 100  # target update frequency
-MEMORY_CAPACITY = 2000
-N_ACTIONS = 16
+MEMORY_CAPACITY = 2500
+N_ACTIONS = 4
 N_STATES = 4
 
 # GPU
