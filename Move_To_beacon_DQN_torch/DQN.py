@@ -6,11 +6,11 @@ import numpy as np
 import gym
 
 BATCH_SIZE = 32
-LR = 0.01                   # learning rate
+LR = 0.0005                   # learning rate
 EPSILON = 0.9               # greedy policy
 GAMMA = 0.9                 # reward discount
 TARGET_REPLACE_ITER = 100  # target update frequency
-MEMORY_CAPACITY = 2500
+MEMORY_CAPACITY = 10000
 N_ACTIONS = 4
 N_STATES = 4
 
@@ -45,7 +45,9 @@ class Net(nn.Module):
 class DQN(object):
     def __init__(self):
         self.eval_net, self.target_net = Net().to(device), Net().to(device)
-
+        self.epsilon = 1
+        self.epsilon_decay = 0.999
+        self.epsilon_min = 0.1
         self.learn_step_counter = 0
         self.memory_counter = 0
         self.memory = np.zeros((MEMORY_CAPACITY, N_STATES * 2 + 2))
@@ -55,11 +57,18 @@ class DQN(object):
     def choose_action(self, x):
         x = Variable(torch.unsqueeze(torch.FloatTensor(x), 0)).to(device)
         # input only one sample
-        if np.random.uniform() < EPSILON:   # random
-            action = np.random.randint(0, N_ACTIONS)
-        else:   # greedy
-            actions_value = self.eval_net.forward(x).to(device)
-            action = torch.max(actions_value, 1)[1][0]
+        if self.epsilon <= self.epsilon_min:
+            if np.random.uniform() < self.epsilon_min:   # random
+                action = np.random.randint(0, N_ACTIONS)
+            else:   # greedy
+                actions_value = self.eval_net.forward(x).to(device)
+                action = torch.max(actions_value, 1)[1][0]
+        else:
+            if np.random.uniform() < self.epsilon:   # random
+                action = np.random.randint(0, N_ACTIONS)
+            else:   # greedy
+                actions_value = self.eval_net.forward(x).to(device)
+                action = torch.max(actions_value, 1)[1][0]
         return action
 
     def store_transition(self, s, a, r, s_):
@@ -70,6 +79,8 @@ class DQN(object):
         self.memory_counter += 1
 
     def learn(self):
+        self.epsilon *= self.epsilon_decay
+        print(self.epsilon)
         if self.learn_step_counter % TARGET_REPLACE_ITER == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.learn_step_counter += 1
