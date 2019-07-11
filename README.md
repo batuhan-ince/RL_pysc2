@@ -7,11 +7,11 @@ Thanks to [@chagmgang](https://github.com/chagmgang) for providing an initial ba
 
 And another thanks to [@MorvanZhou](https://github.com/MorvanZhou) for the DQN part. (https://github.com/MorvanZhou/PyTorch-Tutorial/blob/master/tutorial-contents-notebooks/405_DQN_Reinforcement_learning.ipynb)
 
-[@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
+We used [@Teslatic](https://github.com/Teslatic)'s code for calculating states and distances. As he stated in his repo: "We used  feature_screen.selected since marine vanishes behind beacon when using feature_screen.player_relative"
 
 We mainly followed [StarCraft II: A New Challenge for Reinforcement Learning paper](https://deepmind.com/documents/110/sc2le.pdf)
 
-DQN:
+[@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
 
 
 
