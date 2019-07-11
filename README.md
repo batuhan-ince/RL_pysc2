@@ -11,3 +11,4 @@ And another thanks to [@MorvanZhou](https://github.com/MorvanZhou) for the DQN p
 
 We mainly followed [StarCraft II: A New Challenge for Reinforcement Learning paper](https://deepmind.com/documents/110/sc2le.pdf)
 
+![DQN](Gifs/DQN1-MTB.gif)
