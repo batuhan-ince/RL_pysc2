@@ -8,6 +8,9 @@ from STATES import calc_distance
 import numpy as np
 import time
 from DQN import DQN, MEMORY_CAPACITY
+from visdom import Visdom
+from tensorboardX import SummaryWriter
+import matplotlib.pyplot as plt
 
 # Define the constants
 _PLAYER_RELATIVE = features.SCREEN_FEATURES.player_relative.index
@@ -23,65 +26,68 @@ _NO_OP           = actions.FUNCTIONS.no_op.id
 _ATTACK_MINIMAP = actions.FUNCTIONS.Attack_minimap.id
 _SELECT_ALL  = [0]
 _NOT_QUEUED  = [0]
-step_mul = 8
+step_mul = 4
 FLAGS = flags.FLAGS
-EPISODES = 100000
+EPISODES = 1000
 
 
-
-def train():
-    #defining map
+def test():
+    # defining map
     FLAGS(sys.argv)
     with sc2_env.SC2Env(map_name="MoveToBeacon", step_mul=step_mul, visualize=True,
                         agent_interface_format=sc2_env.AgentInterfaceFormat(
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
-        dqn = DQN()         #initializing DQN
-        #dqn = torch.load("dqnAgent_Trained_Model_20190711-104115  10001.pth")
+
+        dqn = torch.load("dqnAgent_Trained_Model_20190711-104115  10001.pth")
+        scores = []
         for episodes in range(EPISODES):
             done = False
             obs = env.reset()
-            _,__,___,state = calc_distance(obs)
+            _, __, ___, state = calc_distance(obs)
             print('episode start')
             global_step = 0
-            reward = 0 # step reward
-            cum_rew = 0 # episodic reward
-            score_cum = 0		 
+            reward = 0  # step reward
+            cum_rew = 0  # episodic reward
+            score_cum = 0
             while not done:
                 global_step += 1
-                #selecting marines in while loop
+                # selecting marines in while loop
                 while not 331 in obs[0].observation["available_actions"]:
                     actions = actAgent2Pysc2(100, obs)
                     obs = env.step(actions=[actions])
-                action = dqn.choose_action(state) # choosing the action according to DQN
-                actions = actAgent2Pysc2(action, obs) # Calling action from ACTION.py
+                action = dqn.choose_action(state)  # choosing the action according to DQN
+                actions = actAgent2Pysc2(action, obs)  # Calling action from ACTION.py
                 obs = env.step(actions=[actions])
                 _, __, distance, next_state = calc_distance(obs)
                 if global_step == 1:
                     pre_distance = distance
 
-                #Modifying reward to solve sparse reward issue
+                # Modifying reward to solve sparse reward issue
                 reward = -(distance - pre_distance)
-                if obs[0].reward == 1 :
-                    reward = 100 
-          
-                #Detecting the end of the episode
+                if obs[0].reward == 1:
+                    reward = 100
+
+                    # Detecting the end of the episode
                 if obs[0].step_type == environment.StepType.LAST:
                     done = True
-                dqn.store_transition(state, action, reward, next_state)
-                if done == True:
-                    if dqn.memory_counter > MEMORY_CAPACITY:
-                        dqn.learn()
+                # dqn.store_transition(state, action, reward, next_state)
+                # if done == True:
+                #     if dqn.memory_counter > MEMORY_CAPACITY:
+                #         dqn.learn()
                 cum_rew += reward
                 score_cum += obs[0].reward
                 state = next_state
                 pre_distance = distance
+            scores.append(score_cum)
+
             print("episode: ", episodes, "reward: ", cum_rew, "score: ", score_cum)
-            #saving the net
-            if episodes%1000==1:
-                timestr = time.strftime("%Y%m%d-%H%M%S")
-                nn_filename = "dqnAgent_Trained_Model_" + timestr + "  "+str(episodes)+ ".pth"
-                torch.save(dqn, nn_filename)
-
+            # saving the net
+            # if episodes % 1000 == 1:
+            #     timestr = time.strftime("%Y%m%d-%H%M%S")
+            #     nn_filename = "dqnAgent_Trained_Model_" + timestr + "  " + str(episodes) + ".pth"
+            #     torch.save(dqn, nn_filename)
+    return scores
 if __name__ == '__main__':
-    train()
-
+    scores = test()
+    plt.plot(list(range(len(scores))), scores)
+    plt.show()

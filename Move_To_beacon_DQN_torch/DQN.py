@@ -57,18 +57,13 @@ class DQN(object):
     def choose_action(self, x):
         x = Variable(torch.unsqueeze(torch.FloatTensor(x), 0)).to(device)
         # input only one sample
-        if self.epsilon <= self.epsilon_min:
-            if np.random.uniform() < self.epsilon_min:   # random
-                action = np.random.randint(0, N_ACTIONS)
-            else:   # greedy
-                actions_value = self.eval_net.forward(x).to(device)
-                action = torch.max(actions_value, 1)[1][0]
-        else:
-            if np.random.uniform() < self.epsilon:   # random
-                action = np.random.randint(0, N_ACTIONS)
-            else:   # greedy
-                actions_value = self.eval_net.forward(x).to(device)
-                action = torch.max(actions_value, 1)[1][0]
+
+        if np.random.uniform() < self.epsilon:   # random
+            action = np.random.randint(0, N_ACTIONS)
+        else:   # greedy
+            actions_value = self.eval_net.forward(x).to(device)
+            action = torch.max(actions_value, 1)[1][0]
+
         return action
 
     def store_transition(self, s, a, r, s_):
@@ -80,6 +75,7 @@ class DQN(object):
 
     def learn(self):
         self.epsilon *= self.epsilon_decay
+        self.epsilon = max(self.epsilon, self.epsilon_min)
         print(self.epsilon)
         if self.learn_step_counter % TARGET_REPLACE_ITER == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
