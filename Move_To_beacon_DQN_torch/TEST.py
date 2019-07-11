@@ -90,4 +90,13 @@ def test():
 if __name__ == '__main__':
     scores = test()
     plt.plot(list(range(len(scores))), scores)
+    textstr = '\n'.join((
+        r'$\mathrm{Gamma}=%.2f$' % (0.99,),
+        r'$\mathrm{Learning Rate}=%.4f$' % (0.0005,),
+        r'$\mathrm{Mean}=%.4f$' % (np.mean(scores),),
+        r'$\mathrm{Max}=%.4f$' % (np.max(scores),)))
+    plt.title("DQN MoveToBeacon")
+    plt.xlabel("EPISODE")
+    plt.ylabel("SCORE")
+    plt.figtext(0.15, 0.75, textstr, wrap=True, horizontalalignment='left')
     plt.show()
