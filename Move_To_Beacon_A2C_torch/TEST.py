@@ -31,15 +31,15 @@ _SELECT_ALL  = [0]
 _NOT_QUEUED  = [0]
 step_mul = 8
 FLAGS = flags.FLAGS
-EPISODES = 10000
+EPISODES = 1000
 
-def train():
+def test():
     FLAGS(sys.argv)
     with sc2_env.SC2Env(map_name="MoveToBeacon", step_mul=step_mul, visualize=True,
                         agent_interface_format=sc2_env.AgentInterfaceFormat(
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
-        a2c = A2C()
-        rwd = []
+        a2c = torch.load("a2cAgent_Trained_Model_20190711-182846  1001.pth")
+        scores = []
         for episodes in range(EPISODES):
             done = False
             obs = env.reset()
@@ -67,18 +67,27 @@ def train():
 
                 if obs[0].step_type == environment.StepType.LAST:
                         done = True
-                a2c.learn(reward ,state, action_x,action_y)
                 cum_rew = reward + cum_rew
                 score_cum += obs[0].reward
                 state = next_state
                 pre_distance = distance
+            scores.append(score_cum)
 
             print("episode: ", episodes, "reward: ", cum_rew, "score: ", score_cum)
-            if episodes%1000==1:
-                timestr = time.strftime("%Y%m%d-%H%M%S")
-                nn_filename = "a2cAgent_Trained_Model_" + timestr + "  "+str(episodes)+ ".pth"
-                torch.save(a2c, nn_filename)
+    return scores
 
 if __name__ == '__main__':
-    train()
+    scores = test()
+    plt.plot(list(range(len(scores))), scores)
+    textstr = '\n'.join((
+        r'$\mathrm{Gamma}=%.2f$' % (0.99,),
+        r'$\mathrm{Actor Learning Rate}=%.5f$' % (0.00001,),
+        r'$\mathrm{Critic Learning Rate}=%.4f$' % (0.0001,),
+        r'$\mathrm{Mean Score}=%.4f$' % (np.mean(scores),),
+        r'$\mathrm{Max Score}=%.4f$' % (np.max(scores),)))
+    plt.title("A2C MoveToBeacon TEST")
+    plt.xlabel("EPISODE")
+    plt.ylabel("SCORE")
+    plt.figtext(0.15, 0.75, textstr, wrap=True, horizontalalignment='left')
+    plt.show()
 
