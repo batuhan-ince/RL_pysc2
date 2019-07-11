@@ -37,8 +37,8 @@ def test():
     with sc2_env.SC2Env(map_name="MoveToBeacon", step_mul=step_mul, visualize=True,
                         agent_interface_format=sc2_env.AgentInterfaceFormat(
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
-
-        dqn = torch.load("dqnAgent_Trained_Model_20190711-104115  10001.pth")
+	# when train is complete, we'll use below code with saved model
+        #dqn = torch.load("dqnAgent_Trained_Model_20190711-104115  10001.pth")
         scores = []
         for episodes in range(EPISODES):
             done = False
