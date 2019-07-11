@@ -18,3 +18,6 @@ DQN:
 
 
 ![DQN](Gifs/DQN1-MTB.gif)
+
+
+![DQN](Test_Graphs/DQN-MTB.png)
