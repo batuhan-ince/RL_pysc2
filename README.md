@@ -13,6 +13,8 @@ We mainly followed [StarCraft II: A New Challenge for Reinforcement Learning pap
 
 [@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
 
+DQN:
+
 
 
 ![DQN](Gifs/DQN1-MTB.gif)
