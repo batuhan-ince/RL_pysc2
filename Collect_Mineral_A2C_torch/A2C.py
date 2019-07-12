@@ -12,7 +12,7 @@ import torch.nn.functional as F
 from torch.distributions import Categorical
 
 #defining the constants necessary
-N_STATES = 4
+N_STATES = 16*16*2*16,
 N_ACTIONS = 16
 #GPU
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -24,23 +24,23 @@ class Actor_Net(nn.Module):
     def __init__(self, ):
         super(Actor_Net, self).__init__()
 
-        self.fc1 = nn.Linear(N_STATES, 10)
+        self.fc1 = nn.Linear(N_STATES, 30)
         nn.init.xavier_uniform(self.fc1.weight)
         self.fc1.bias.data.fill_(0.01)
 
-        self.fc2 = nn.Linear(10, 5)
+        self.fc2 = nn.Linear(30, 30)
         nn.init.xavier_uniform(self.fc2.weight)
         self.fc2.bias.data.fill_(0.01)
 
-        self.fc3 = nn.Linear(5, 5)
+        self.fc3 = nn.Linear(30, 30)
         nn.init.xavier_uniform(self.fc3.weight)
         self.fc3.bias.data.fill_(0.01)
 
-        self.fc4 = nn.Linear(5, 5)
+        self.fc4 = nn.Linear(30, 30)
         nn.init.xavier_uniform(self.fc4.weight)
         self.fc4.bias.data.fill_(0.01)
         
-        self.out = nn.Linear(5, N_ACTIONS)
+        self.out = nn.Linear(30, N_ACTIONS)
         nn.init.xavier_uniform(self.out.weight)
 
     def forward(self, x):
@@ -61,23 +61,23 @@ class Critic_Net(nn.Module):
     def __init__(self, ):
         super(Critic_Net, self).__init__()
 
-        self.fc1 = nn.Linear(N_STATES, 10)
+        self.fc1 = nn.Linear(N_STATES, 30)
         nn.init.xavier_uniform(self.fc1.weight)
         self.fc1.bias.data.fill_(0.01)
 
-        self.fc2 = nn.Linear(10, 10)
+        self.fc2 = nn.Linear(30, 30)
         nn.init.xavier_uniform(self.fc2.weight)
         self.fc2.bias.data.fill_(0.01)
 
-        self.fc3 = nn.Linear(10, 10)
+        self.fc3 = nn.Linear(30, 30)
         nn.init.xavier_uniform(self.fc3.weight)
         self.fc3.bias.data.fill_(0.01)
 
-        self.fc4 = nn.Linear(10, 10)
+        self.fc4 = nn.Linear(30, 30)
         nn.init.xavier_uniform(self.fc4.weight)
         self.fc4.bias.data.fill_(0.01)
 
-        self.out = nn.Linear(10, N_ACTIONS)
+        self.out = nn.Linear(30, N_ACTIONS)
         nn.init.xavier_uniform(self.out.weight)
 
     def forward(self, x):

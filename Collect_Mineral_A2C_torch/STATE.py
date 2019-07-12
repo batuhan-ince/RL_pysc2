@@ -6,7 +6,7 @@ from pysc2.env import sc2_env, run_loop
 from pysc2.lib import actions, features
 import numpy as np
 import matplotlib.pyplot as plt
-
+import math
 _PLAYER_SELF = features.PlayerRelative.SELF
 _PLAYER_NEUTRAL = features.PlayerRelative.NEUTRAL
 _PLAYER_ENEMY = features.PlayerRelative.ENEMY
@@ -16,34 +16,47 @@ FUNCTIONS = actions.FUNCTIONS
 _SELECT_ALL = [0]
 _NOT_QUEUED = [0]
 
-def _xy_locs(mask):
+def xy_locs(mask):
   """Mask should be a set of bools from comparison with a feature layer."""
   y, x = mask.nonzero()
   return list(zip(x, y))
 
 def positions(obs): #Returns the distance to the closest mineral and the state
-    player_relative = obs[0].observation.feature_screen.player_relative
 
-    marines = _xy_locs(player_relative == _PLAYER_SELF)
-    minerals = _xy_locs(player_relative == _PLAYER_NEUTRAL)
-    marine_xy = np.mean(marines, axis=0).round()  # Average location.
-    distances = np.linalg.norm(np.array(minerals)-marine_xy, axis=1)
-    closest_mineral_xy = minerals[np.argmin(distances)]
-    dist2 = np.linalg.norm(np.array(closest_mineral_xy) - marine_xy, axis=0)
-    state = np.dstack((marine_xy, closest_mineral_xy)).reshape(4)
-    return dist2, state
+    marine_map = (obs[0].observation.feature_screen.base[5] == 1)
+    beacon_map = (obs[0].observation.feature_screen.base[5] == 3)
+    state = np.dstack([marine_map, beacon_map]).reshape(16 * 16 * 16*2).astype(int)
+    return  state
 
 
-def distss(obs): #can be used for future reward modifies
-    player_relative = obs[0].observation.feature_screen.player_relative
-    minerals_y, minerals_x = (player_relative == _PLAYER_NEUTRAL).nonzero()
-    marines_y, marines_x = (player_relative == _PLAYER_SELF).nonzero()
-    marines_x, marines_y, minerals_x, minerals_y = np.mean(marines_x), np.mean(marines_y), np.mean(minerals_x), np.mean(minerals_y)
 
-    now_distance = ((marines_x/63 - minerals_x/63)**2 + (marines_y/63 - minerals_y/63)**2)
+def calc_distance(observation):
+    actual_obs = observation[0]
+    scrn_player = actual_obs.observation.feature_screen.player_relative
+    scrn_select = actual_obs.observation.feature_screen.selected
+    scrn_density = actual_obs.observation.feature_screen.unit_density
 
-    return now_distance
+    state_added = scrn_select + scrn_density
 
-def obs2done(obs): #Calculates mineral points
-    collected_mineral = (obs[0].observation['player'][1])
-    return collected_mineral
+    marine_center = np.mean(xy_locs(scrn_player == 1), axis=0).round()
+
+    # first step
+    if np.sum(scrn_select) == 0:
+        marine_center = np.mean(xy_locs(scrn_player == 1), axis=0).round()
+        # marine behind beacon
+        if isinstance(marine_center, float):
+            marine_center = np.mean(xy_locs(state_added == 2), axis=0).round()
+    else:
+        # normal navigation
+        marine_center = np.mean(xy_locs(state_added == 2), axis=0).round()
+        if isinstance(marine_center, float):
+            marine_center = np.mean(xy_locs(state_added == 3), axis=0).round()
+
+    beacon_center = np.mean(xy_locs(scrn_player == 3), axis=0).round()
+
+    distance = math.hypot(beacon_center[0] - marine_center[0],
+                          beacon_center[1] - marine_center[1])
+
+    state = np.dstack((marine_center, beacon_center)).reshape(4)
+
+    return beacon_center, marine_center, distance, state

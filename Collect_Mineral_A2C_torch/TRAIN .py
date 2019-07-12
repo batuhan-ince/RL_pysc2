@@ -4,7 +4,7 @@ from pysc2.env import sc2_env, environment
 from pysc2.lib import actions, features
 import matplotlib.pyplot as plt
 from Collect_Mineral_A2C_torch.action import actAgent2Pysc2, no_operation
-from STATE import distss, positions, obs2done
+from STATE import positions
 import numpy as np
 import torch
 import time
@@ -23,7 +23,7 @@ _NO_OP = actions.FUNCTIONS.no_op.id
 _ATTACK_MINIMAP = actions.FUNCTIONS.Attack_minimap.id
 _SELECT_ALL = [0]
 _NOT_QUEUED = [0]
-step_mul = 16
+step_mul = 8
 FLAGS = flags.FLAGS
 EPISODES = (5+5)**4
 BATCH_SIZE = 500
@@ -35,37 +35,29 @@ def train():
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
         a2c = A2C()
         rwd = []
+        #a2c=torch.load("CMS_A2C_Agent_Trained_Model_20190705-110335  1.spth")
         for episodes in range(EPISODES):
             done = False
             obs = env.reset()
-
-            _,state = positions(obs)
+            state = positions(obs)
             global_step = 0
             reward = 0
             cum_rew = 0
             while not done:
-                start = time.time()
                 global_step += 1
-                time.sleep(0.2)
                 while not 331 in obs[0].observation["available_actions"]:
                     actions = actAgent2Pysc2(100, obs)
                     obs = env.step(actions=[actions])
                 _, action, __ = a2c.choose_action(state)
-
                 actions = actAgent2Pysc2(action, obs)
                 obs = env.step(actions=[actions])
-                dist, next_state = positions(obs)
-                if global_step == 1:
-                    pre_distance = dist
+                next_state = positions(obs)
                 reward= obs[0].reward
-                if obs2done(obs) > 1900: #Collecting all the minerals ends the episode
-                    done = True
                 if obs[0].step_type == environment.StepType.LAST:#Ending  episode if it's the last step
                     done = True
                 a2c.learn(reward ,state, action) #Learning
                 cum_rew = reward + cum_rew
                 state = next_state
-                pre_distance = dist
             print('episode: ', episodes, 'reward: ', cum_rew)
             #Saving the net
             if episodes % 1000 == 1:
