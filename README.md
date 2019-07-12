@@ -1,6 +1,8 @@
-# RL_pysc2
+###### RL_pysc2
+Deep Reinforcement Learning algorithms for Starcraft II (Pytorch).\
+Mini games: Move to Beacon and Collect Mineral Shards (You need to download these before)\
 
-DQN:
+## DQN:
 
 
 
@@ -11,7 +13,7 @@ DQN:
 
 
 
-A2C:
+## A2C:
 
 
 
@@ -23,14 +25,13 @@ A2C:
 
 
 
-|    TABLE        | MoveToBeacon(DQN) | MoveToBeacon(A2C) |Best Deepmind Scores|   
+|    # TABLE        | # MoveToBeacon(DQN) | # MoveToBeacon(A2C) |# Best Deepmind Scores|   
 | :---:         |     :---:      |          :---: |           :---: |
-| MEAN   | 21.5     | 22.5    | 26
-| MAX     | 28       | 29      | 45
+| # MEAN   | 21.5     | 22.5    | 26
+| # MAX     | 28       | 29      | 45
 
 
-Deep Reinforcement Learning algorithms for Starcraft II (Pytorch).\
-Mini games: Move to Beacon and Collect Mineral Shards (You need to download these before)\
+
 
 
 Thanks to [@chagmgang](https://github.com/chagmgang) for providing an initial baseline for our state and actions.(https://github.com/chagmgang/pysc2_rl)
@@ -43,3 +44,4 @@ We mainly followed [StarCraft II: A New Challenge for Reinforcement Learning pap
 
 [@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
 
+ 
