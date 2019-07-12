@@ -46,16 +46,15 @@ def train():
             while not done:
                 global_step += 1
                 while not 331 in obs[0].observation["available_actions"]:
-                    actions = actAgent2Pysc2(100, obs)
-                    obs = env.step(actions=[actions])
-                _, action, __ = a2c.choose_action(state)
-                actions = actAgent2Pysc2(action, obs)
-                obs = env.step(actions=[actions])
+                    actionss = actions.FunctionCall(_SELECT_ARMY, [_SELECT_ALL])
+                    obs = env.step(actions=[actionss])
+                _, action_x, __, ___, action_y, ____ = a2c.choose_action(state)
+                obs = env.step(actions=[actions.FunctionCall(_MOVE_SCREEN, [_NOT_QUEUED, [action_x, action_y]])])
                 next_state = positions(obs)
                 reward= obs[0].reward
                 if obs[0].step_type == environment.StepType.LAST:#Ending  episode if it's the last step
                     done = True
-                a2c.learn(reward ,state, action) #Learning
+                a2c.learn(reward ,state, action_x,action_y) #Learning
                 cum_rew = reward + cum_rew
                 state = next_state
             print('episode: ', episodes, 'reward: ', cum_rew)
