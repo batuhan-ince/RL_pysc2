@@ -21,3 +21,9 @@ DQN:
 
 
 ![DQN](Test_Graphs/DQN-MTB.png)
+
+
+
+
+![A2C](Test_Graphs/A2C1-MTB1.jpeg)
+
