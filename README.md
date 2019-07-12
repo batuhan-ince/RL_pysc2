@@ -25,10 +25,10 @@ Mini games: Move to Beacon and Collect Mineral Shards (You need to download thes
 
 
 
-|    ### TABLE        | ### MoveToBeacon(DQN) | ### MoveToBeacon(A2C) |### Best Deepmind Scores|   
+|     __ __TABLE        |  MoveToBeacon(DQN) |  MoveToBeacon(A2C) | Best Deepmind Scores|   
 | :---:         |     :---:      |          :---: |           :---: |
-| ### MEAN   | 21.5     | 22.5    | 26
-| ### MAX     | 28       | 29      | 45
+|  MEAN   | 21.5     | 22.5    | 26
+|  MAX     | 28       | 29      | 45
 
 
 
