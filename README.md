@@ -34,3 +34,13 @@ A2C:
 
 
 
+
+
+|    TABLE        | MoveToBeacon(DQN) | MoveToBeacon(A2C) |Best Deepmind Scores|   
+| :---:         |     :---:      |          :---: |           :---: |
+| MEAN   | 21.5     | 22.5    | 26
+| MAX     | 28       | 29      | 45
+
+
+
+
