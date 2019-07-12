@@ -24,6 +24,3 @@ DQN:
 
 
 
-
-![A2C](Test_Graphs/A2C1-MTB1.jpeg)
-
