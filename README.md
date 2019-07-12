@@ -24,3 +24,11 @@ DQN:
 
 
 
+A2C:
+
+
+
+![A2C](Test_Graphs/A2C-MTB1.png)
+
+
+
