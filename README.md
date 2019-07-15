@@ -19,7 +19,7 @@ Mini games: Move to Beacon and Collect Mineral Shards (You need to download thes
 
 ![A2C](Gifs/A2C-MTB.gif)
 
-![A2C](Test_Graphs/A2C-MTB1.png)
+
 
 
 
