@@ -3,7 +3,6 @@ from absl import flags
 from pysc2.env import sc2_env, environment
 from pysc2.lib import actions, features
 import matplotlib.pyplot as plt
-from Collect_Mineral_A2C_torch.action import actAgent2Pysc2, no_operation
 from STATE import positions
 import numpy as np
 import torch
@@ -54,7 +53,7 @@ def train():
                 reward= obs[0].reward
                 if obs[0].step_type == environment.StepType.LAST:#Ending  episode if it's the last step
                     done = True
-                a2c.learn(reward ,state, action_x,action_y) #Learning
+                a2c.learn(reward ,state,next_state, action_x,action_y) #Learning
                 cum_rew = reward + cum_rew
                 state = next_state
             print('episode: ', episodes, 'reward: ', cum_rew)
