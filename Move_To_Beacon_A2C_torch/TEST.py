@@ -33,12 +33,13 @@ step_mul = 8
 FLAGS = flags.FLAGS
 EPISODES = 1000
 
+
 def test():
     FLAGS(sys.argv)
-    with sc2_env.SC2Env(map_name="MoveToBeacon", step_mul=step_mul, visualize=True,
+    with sc2_env.SC2Env(map_name="MoveToBeacon", step_mul=step_mul, visualize=False,
                         agent_interface_format=sc2_env.AgentInterfaceFormat(
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
-        a2c = torch.load("a2cAgent_Trained_Model_20190711-182846  1001.pth")
+        a2c = torch.load("a2cAgent_Trained_Model_20190714-172511  9001.pth")
         scores = []
         for episodes in range(EPISODES):
             done = False
@@ -73,7 +74,7 @@ def test():
                 pre_distance = distance
             scores.append(score_cum)
 
-            print("episode: ", episodes, "reward: ", cum_rew, "score: ", score_cum)
+            print("episode: ", episodes, "reward: ", cum_rew, "score: ", score_cum, "mean score: ", np.mean(scores))
     return scores
 
 if __name__ == '__main__':

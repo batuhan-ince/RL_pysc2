@@ -38,7 +38,7 @@ def train():
     with sc2_env.SC2Env(map_name="MoveToBeacon", step_mul=step_mul, visualize=True,
                         agent_interface_format=sc2_env.AgentInterfaceFormat(
                             feature_dimensions=sc2_env.Dimensions(screen=64, minimap=64))) as env:
-        a2c = A2C()
+        a2c = torch.load("a2cAgent_Trained_Model_20190714-172511  9001.pth")
         rwd = []
         for episodes in range(EPISODES):
             done = False
@@ -67,7 +67,7 @@ def train():
 
                 if obs[0].step_type == environment.StepType.LAST:
                         done = True
-                a2c.learn(reward ,state, action_x,action_y)
+                a2c.learn(reward ,state,next_state,action_x,action_y)
                 cum_rew = reward + cum_rew
                 score_cum += obs[0].reward
                 state = next_state

@@ -43,6 +43,7 @@ class Actor_Net(nn.Module):
         self.out = nn.Linear(25, N_ACTIONS)
         nn.init.xavier_uniform(self.out.weight)
 
+
     def forward(self, x):
         x = self.fc1(x)
         x = F.relu(x)
@@ -80,6 +81,7 @@ class Critic_Net(nn.Module):
         self.out = nn.Linear(25, N_ACTIONS)
         nn.init.xavier_uniform(self.out.weight)
 
+
     def forward(self, x):
         x = self.fc1(x)
         x = F.relu(x)
@@ -110,15 +112,18 @@ class A2C(nn.Module):
         dist_x,dist_y = Categorical(prob_x), Categorical(prob_y)
         return dist_x, dist_x.sample(), prob_x,dist_y,dist_y.sample(),prob_y
 
-    def learn(self, R, X, action_x,action_y, GAMMA=0.99):
+    def learn(self, R, X, z, action_x,action_y, GAMMA=0.99):
         X = Variable(torch.unsqueeze(torch.FloatTensor(X), 0))
+        z = Variable(torch.unsqueeze(torch.FloatTensor(z), 0))
         X=torch.squeeze(X,0)
-        x_val,y_val=self.critic_x.forward(X),self.critic_y.forward(X)
+        z = torch.squeeze(z, 0)
+        x_val2,y_val2=self.critic_x.forward(z),self.critic_y.forward(z)
+        x_val1, y_val1 = self.critic_x.forward(X), self.critic_y.forward(X)
 
-        self.TD_ERROR_X = R + GAMMA * x_val
-        self.TD_ERROR_Y = R + GAMMA * y_val
-        critic_loss_x = self.TD_ERROR_X ** 2
-        critic_loss_y = self.TD_ERROR_Y ** 2
+        self.TD_ERROR_X = R + GAMMA * x_val2-x_val1
+        self.TD_ERROR_Y = R + GAMMA * y_val2-y_val1
+        critic_loss_x = (self.TD_ERROR_X) ** 2
+        critic_loss_y = (self.TD_ERROR_Y) ** 2
 
         # X = (torch.unsqueeze(X, 0))
         dist_x, _, prob_x,dist_y,___,prob_y = self.choose_action(X)
