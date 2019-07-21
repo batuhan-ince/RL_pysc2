@@ -57,8 +57,11 @@ class A2C(nn.Module):
             self.capacity = capacity
 
         @property
-        def size():
+        def size(self):
             return len(self._queue)
+
+        def __len__(self):
+            return self.size
 
         def put(self, value, reward, done, log_prob, entropy):
             element = (value, reward, done, log_prob, entropy)
@@ -72,7 +75,7 @@ class A2C(nn.Module):
             if self.size < 1:
                 raise RuntimeError("Queue has less than 2 element!")
             for i in range(self.size - 1):
-                yield (*self._queue[i], self._queue[i+1].value)
+                yield (*self._queue[i][:3], self._queue[i+1][0])
 
         def get(self):
             return self._queue[self.cycle]
@@ -82,8 +85,6 @@ class A2C(nn.Module):
         self.network = network
         self.nstep = nstep
         self.optimizer = optimizer
-        # Only for the discrete implementation
-        self.dist = Categorical()
         # Transitions are gather inside A2C for updating. There are n_step +1
         # transitions in the queue at any time. This is because we need the
         # last next_state for TD calculations
@@ -114,7 +115,7 @@ class A2C(nn.Module):
                     action. Dim: (?, 1)
 
         """
-        if self.train:
+        if self.training:
             logit_act, value = self.network(state)
         else:
             with torch.no_grad():
@@ -122,11 +123,12 @@ class A2C(nn.Module):
             return torch.argmax(logit_act, dim=-1)
 
         dist = Categorical(logits=logit_act)
-        action = dist.sample().item()
+        action = dist.sample().detach()
         log_prob = dist.log_prob(action)
         entropy = dist.entropy()
 
-        return action, log_prob, entropy, value
+        return (action.reshape(-1, 1), log_prob.reshape(-1, 1),
+                entropy.reshape(-1, 1), value)
 
     def update(self, gamma, tau, beta):
         """
@@ -189,7 +191,7 @@ class A2C(nn.Module):
         _gamma = 1.0
         _tau = 1.0
 
-        for value, reward, done, next_value, _, _ in self.queue:
+        for value, reward, done, next_value in self.queue:
             n_return += reward*reward_mask*_gamma
             gae += (next_value*gamma + reward - value)*_gamma*_tau*reward_mask
             # If done is 1 then reward_mask will continue to be zero
@@ -197,7 +199,7 @@ class A2C(nn.Module):
             _gamma *= gamma
             _tau *= tau
         # If no termination occured we add the last next_value to the return
-        value_mask = 1 - reward_mask
+        value_mask = reward_mask
         n_return += value_mask*next_value*_gamma
 
         return n_return.detach(), gae.detach()
@@ -208,6 +210,7 @@ class A2C(nn.Module):
             Raise:
                 - ValueError: If the given argument is not a torch tensor
                 - ValueError: If the tensor is not 2 dimensional
+                - ValueError: If the dtype of a tensor is not float
         """
         for name, element in zip(
             ["value", "reward", "done", "log_prob", "entropy"],
@@ -215,8 +218,12 @@ class A2C(nn.Module):
             if not isinstance(element, torch.Tensor):
                 raise ValueError(
                     "Argument {} is expected to be torch Tensor!".format(name))
-            if (element.shape) != 2:
+            if (len(element.shape)) != 2:
                 raise ValueError(
-                    "Argument {} is must to be 2 dimensional!".format(name))
+                    "Argument {} must to be 2 dimensional!".format(name))
+            if not isinstance(element, (torch.FloatTensor or
+                                        torch.cuda.FloatTensor)):
+                raise ValueError(
+                    "Argument {} must be a float tensor!".format(name))
 
         self.queue.put(value, reward, done, log_prob, entropy)
