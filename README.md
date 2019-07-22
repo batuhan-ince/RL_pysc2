@@ -9,7 +9,7 @@ Mini games: Move to Beacon and Collect Mineral Shards (You need to download thes
 ![DQN](Gifs/DQN1-MTB.gif)
 
 
-![DQN](Test_Graphs/DQN-MTB.png)
+
 
 
 
@@ -19,7 +19,7 @@ Mini games: Move to Beacon and Collect Mineral Shards (You need to download thes
 
 ![A2C](Gifs/A2C-MTB.gif)
 
-![A2C](Test_Graphs/A2C-MTB2.png)
+
 
 
 
@@ -43,6 +43,6 @@ We used [@Teslatic](https://github.com/Teslatic)'s code for calculating states a
 
 We mainly followed [StarCraft II: A New Challenge for Reinforcement Learning paper](https://deepmind.com/documents/110/sc2le.pdf)
 
-## [@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
+## [@TolgaOk](https://github.com/TolgaOk) & [@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya)
 
  
