@@ -134,13 +134,9 @@ class A2C(nn.Module):
         """
         Calculate actor and critic losses. Generalized advantage estimation is
         used in the actor loss. Loss is calculated for a batch of transitions.
-        Structure of the batch is design to be used for n-step TD learning
-        with generalized advantage estimation in mind. Therefore it is an
-        unusual data structure.
+        Necessary batch is gathered from agent's queue. Update function should
+        only be called once before addition of new transition into the queue.
         Arguments:
-            - batch: LossInfo object of tensors. Batch ies expected to include
-                returns, value, next_value, gae, log_prob and entorpy as
-                tensors with batch dimension.
             - gamma: Discount rate
             - tau: Generalized advantage estimation coefficient
             - beta: Entropy regularization coefficient
@@ -184,7 +180,7 @@ class A2C(nn.Module):
         gae = 0.0
         # Masks are used in order to leave out rewards after termination and
         # values before and after termination
-        value_mask = 0.0
+        value_mask = 1.0
         reward_mask = 1.0
         # Since we traverse the queue begining to end we need to multiply
         # gamma and tau at each iteration by themselves
@@ -193,8 +189,10 @@ class A2C(nn.Module):
 
         for value, reward, done, next_value in self.queue:
             n_return += reward*reward_mask*_gamma
-            gae += (next_value*gamma + reward - value)*_gamma*_tau*reward_mask
-            # If done is 1 then reward_mask will continue to be zero
+            value_mask *= (1 - done)
+            gae += (next_value*gamma*value_mask + reward - value)*(
+                _gamma*_tau*reward_mask)
+            # If done is 1 then reward_mask becomes zero
             reward_mask *= (1 - done)
             _gamma *= gamma
             _tau *= tau
