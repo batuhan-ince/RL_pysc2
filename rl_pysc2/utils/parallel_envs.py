@@ -91,7 +91,7 @@ class ParallelEnv():
             raise ValueError("<actions> must be 2 dimensional!")
         if actions.shape[0] != self.n_envs:
             raise ValueError("not enough actions!")
-        actions = actions.reshape(-1)
+        actions = actions.squeeze(-1)
         for act, (_, remote) in zip(actions, self.env_processes):
             remote.send(act)
 

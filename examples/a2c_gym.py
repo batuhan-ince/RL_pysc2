@@ -19,14 +19,15 @@ class Model(torch.nn.Module):
     def forward(self, state):
         x = torch.relu(self.fc1(state))
         x = torch.relu(self.fc2(x))
-        policy = torch.relu(self.policy(x))
-        value = torch.relu(self.value(x))
+        policy = self.policy(x)
+        value = self.value(x)
         return policy, value
+
 
 if __name__ == "__main__":
     env_name = "CartPole-v0"
     n_step = 5
-    n_env = 6
+    n_env = 16
     gamma = 0.98
     beta = 0.1
     tau = 0.99
@@ -35,19 +36,13 @@ if __name__ == "__main__":
     in_size = env.observation_space.shape[0]
     out_size = env.action_space.n
     model = Model(in_size, out_size)
-    optimizer = torch.optim.Adam(model.parameters())
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
     agent = A2C(model, n_step, optimizer)
     device = "cpu"
 
     p_env = ParallelEnv(n_env, lambda: gym.make(env_name))
     episode_rewards = np.zeros((n_env, 1))
     reward_list = []
-
-    # Plot init
-    # plt.ion()
-    # fig = plt.figure()
-    # ax = fig.add_subplot(111)
-    # line, = ax.plot([], [])
 
     with p_env as states:
         for i in range(10000):
@@ -57,8 +52,8 @@ if __name__ == "__main__":
             next_states, rewards, dones = p_env.step(actions.to("cpu").numpy())
             # Reward Calculation
             episode_rewards += rewards
-            for j in dones.reshape(-1).astype(np.int):
-                if j == 1:
+            for j, done in enumerate(dones.reshape(-1)):
+                if done == 1:
                     reward_list.append(episode_rewards[j][0])
                     episode_rewards[j][0] = 0.0
             # Append Transition
@@ -68,9 +63,7 @@ if __name__ == "__main__":
             states = next_states
             # Update
             if i > n_step:
-                agent.update(gamma, tau, beta)
-            # Plot
-            # line.set_ydata(reward_list)
-            # line.set_xdata(np.arange(len(reward_list)))
-            # plt.pause(0.00001)
-            print(np.mean(reward_list[-10:]), end="\r")
+                v_l, p_l = agent.update(gamma, tau, beta)
+                print(" "*80, end="\r")
+                print("Reward: {}, Value L: {:.3f}, Policy L: {:.3f}".format(
+                    np.mean(reward_list[-100:]), v_l, p_l), end="\r")

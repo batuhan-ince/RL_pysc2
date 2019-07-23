@@ -146,15 +146,15 @@ class A2C(nn.Module):
         value, reward, done, log_prob, entropy = self.queue.get()
         returns, gae = self._gae_and_return(gamma, tau)
 
-        value_loss = returns - value
+        value_loss = torch.nn.functional.mse_loss(value, returns)
         policy_loss = log_prob * gae + entropy * beta
-
-        loss = torch.sum(value_loss - policy_loss * beta)
+        
+        loss = value_loss - policy_loss.mean()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        return torch.sum(value_loss).item(), torch.sum(policy_loss).item()
+        return value_loss.item(), policy_loss.mean().item()
 
     def _gae_and_return(self, gamma, tau):
         """ Calculate n-step generalized advantage estimation and n step
@@ -198,7 +198,7 @@ class A2C(nn.Module):
             _tau *= tau
         # If no termination occured we add the last next_value to the return
         value_mask = reward_mask
-        n_return += value_mask*next_value*_gamma
+        n_return += value_mask*next_value.detach()*_gamma
 
         return n_return.detach(), gae.detach()
 

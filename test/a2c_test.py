@@ -105,6 +105,9 @@ class A2CTest(unittest.TestCase):
         for test_ in (test_1, test_2, test_3):
             unit_test_fn(**test_)
 
+    def test_update(self):
+        
+
 
 if __name__ == '__main__':
     unittest.main()
