@@ -27,7 +27,7 @@ class Model(torch.nn.Module):
 if __name__ == "__main__":
     env_name = "CartPole-v0"
     n_step = 5
-    n_env = 16
+    n_env = 8
     gamma = 0.98
     beta = 0.1
     tau = 0.99
@@ -65,5 +65,5 @@ if __name__ == "__main__":
             if i > n_step:
                 v_l, p_l = agent.update(gamma, tau, beta)
                 print(" "*80, end="\r")
-                print("Reward: {}, Value L: {:.3f}, Policy L: {:.3f}".format(
-                    np.mean(reward_list[-100:]), v_l, p_l), end="\r")
+                print("Episode: {}, Reward: {}, Value L: {:.3f}, Policy L: {:.3f}".format(
+                    len(reward_list), np.mean(reward_list[-100:]), v_l, p_l), end="\r")

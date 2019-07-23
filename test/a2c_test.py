@@ -54,8 +54,8 @@ class A2CTest(unittest.TestCase):
             done=[0, 0, 0, 1, 0, 0],
             reward=[1, 1, 1, 10, 1, 1],
             value=[-100, -100, -100, -100, -200, -100],
-            expected_r=13,
-            expected_gae=113,
+            expected_r=12,
+            expected_gae=112,
             n=4)
         test_2 = dict(
             done=[0, 0, 0, 0, 0],
@@ -73,7 +73,15 @@ class A2CTest(unittest.TestCase):
             expected_gae=101,
             n=3
         )
-        
+        test_4 = dict(
+            done=[0, 0, 0, 0],
+            reward=[1, 2, 3, 4],
+            value=[-100, -90, -80, -70],
+            expected_r=-65,
+            expected_gae=25,
+            n=2
+        )
+
         def unit_test_fn(done, reward, value, expected_r, expected_gae, n):
             log_prob = torch.ones(1, 1)
             entropy = torch.ones(1, 1)
@@ -102,12 +110,8 @@ class A2CTest(unittest.TestCase):
             self.assertEqual(n_return, expected_r)
             self.assertEqual(gae, expected_gae)
         
-        for test_ in (test_1, test_2, test_3):
+        for test_ in (test_1, test_2, test_3, test_4):
             unit_test_fn(**test_)
-
-    def test_update(self):
-        
-
 
 if __name__ == '__main__':
     unittest.main()

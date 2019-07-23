@@ -75,7 +75,9 @@ class A2C(nn.Module):
             if self.size < 1:
                 raise RuntimeError("Queue has less than 2 element!")
             for i in range(self.size - 1):
-                yield (*self._queue[i][:3], self._queue[i+1][0])
+                i_0 = (self.cycle + i) % self.size
+                i_1 = (self.cycle + i + 1) % self.size
+                yield (*self._queue[i_0][:3], self._queue[i_1][0])
 
         def get(self):
             return self._queue[self.cycle]
@@ -146,15 +148,18 @@ class A2C(nn.Module):
         value, reward, done, log_prob, entropy = self.queue.get()
         returns, gae = self._gae_and_return(gamma, tau)
 
-        value_loss = torch.nn.functional.mse_loss(value, returns)
+        # value_loss = torch.nn.functional.mse_loss(value, returns)
+        value_loss = torch.pow(value - returns, 2)
         policy_loss = log_prob * gae + entropy * beta
-        
-        loss = value_loss - policy_loss.mean()
+
+        # print(value_loss.sqrt())
+
+        loss = value_loss.mean() - policy_loss.mean()
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        return value_loss.item(), policy_loss.mean().item()
+        return value_loss.mean().item(), policy_loss.mean().item()
 
     def _gae_and_return(self, gamma, tau):
         """ Calculate n-step generalized advantage estimation and n step
@@ -198,7 +203,7 @@ class A2C(nn.Module):
             _tau *= tau
         # If no termination occured we add the last next_value to the return
         value_mask = reward_mask
-        n_return += value_mask*next_value.detach()*_gamma
+        n_return += value_mask*next_value*_gamma
 
         return n_return.detach(), gae.detach()
 
