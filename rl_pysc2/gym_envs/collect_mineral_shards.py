@@ -1,6 +1,7 @@
 """
 This module is adapted from Islam Elnabarawy
 https://github.com/islamelnabarawy/sc2gym
+Collect Mineral Shards
 """
 
 from pysc2.lib import actions, features
