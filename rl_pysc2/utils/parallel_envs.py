@@ -17,7 +17,7 @@ import numpy as np
 
 class ParallelEnv():
     """ Synchronize multi envirnments wrapper.
-    
+
         Workers are communicated throug pipes where each worker runs a single
         environment. Initiation is started by calling <start> method or using
         "with" statement. After initiating workers, step function can be
@@ -28,7 +28,7 @@ class ParallelEnv():
             Arguments:
                 - n_env: Number of environments
                 - env_maker_fn: Function that returns environment
-        
+
         Example:
             >>> p_env = ParallelEnv(n, lambda: gym.make(env_name))
             >>> with p_env as intial_state:
@@ -98,7 +98,9 @@ class ParallelEnv():
         state, reward, done = [np.stack(batch) for batch in zip(*(
             remote.recv() for _, remote in self.env_processes))]
 
-        return state, reward.reshape(-1, 1), done.reshape(-1, 1)
+        return (state,
+                reward.reshape(-1, 1).astype(np.float32),
+                done.reshape(-1, 1).astype(np.float32))
 
     def close(self):
         """ Terminate and join all the workers.
@@ -135,6 +137,7 @@ class ParallelEnv():
         """
         env = env_maker_fn()
         state = env.reset()
+        # Wait for the start command
         remote.recv()
         remote.send(state)
         while True:

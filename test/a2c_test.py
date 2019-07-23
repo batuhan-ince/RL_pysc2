@@ -53,14 +53,14 @@ class A2CTest(unittest.TestCase):
         test_1 = dict(
             done=[0, 0, 0, 1, 0, 0],
             reward=[1, 1, 1, 10, 1, 1],
-            value=[-100, -100, -100, -100, -100, -100],
+            value=[-100, -100, -100, -100, -200, -100],
             expected_r=13,
-            expected_gae=13,
+            expected_gae=113,
             n=4)
         test_2 = dict(
-            done=[0, 0, 0, 0],
-            reward=[1, 1, 1, 1],
-            value=[-100, -100, -100, -100],
+            done=[0, 0, 0, 0, 0],
+            reward=[1, 1, 1, 1, 1],
+            value=[-100, -100, -100, -100, -100],
             expected_r=-97,
             expected_gae=3,
             n=3
@@ -70,7 +70,7 @@ class A2CTest(unittest.TestCase):
             reward=[1, 1, 1, 1],
             value=[-100, -90, -80, -70],
             expected_r=1,
-            expected_gae=11,
+            expected_gae=101,
             n=3
         )
         

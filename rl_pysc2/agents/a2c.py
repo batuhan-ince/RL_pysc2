@@ -149,10 +149,10 @@ class A2C(nn.Module):
         value_loss = returns - value
         policy_loss = log_prob * gae + entropy * beta
 
-        loss = torch.sum(value_loss, -policy_loss * beta)
+        loss = torch.sum(value_loss - policy_loss * beta)
         self.optimizer.zero_grad()
         loss.backward()
-        self.step()
+        self.optimizer.step()
 
         return torch.sum(value_loss).item(), torch.sum(policy_loss).item()
 
