@@ -1,7 +1,7 @@
 import unittest
 import torch
 
-from rl_pysc2.agents.a2c import A2C
+from rl_pysc2.agents.a2c.agent import A2C
 
 
 class QueueTest(unittest.TestCase):

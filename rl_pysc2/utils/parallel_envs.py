@@ -97,7 +97,6 @@ class ParallelEnv():
 
         state, reward, done = [np.stack(batch) for batch in zip(*(
             remote.recv() for _, remote in self.env_processes))]
-
         return (state,
                 reward.reshape(-1, 1).astype(np.float32),
                 done.reshape(-1, 1).astype(np.float32))
@@ -153,11 +152,10 @@ class ParallelEnv():
 if __name__ == "__main__":
     import gym
 
-    vectorized_envs = ParallelEnv(3, lambda: gym.make("CartPole-v0"))
+    vectorized_envs = ParallelEnv(1, lambda: gym.make("CartPole-v0"))
 
-    for i in range(2):
-        with vectorized_envs as state:
-            print(state.shape)
-            actions = np.ones((3, 1), dtype=np.int)
+    with vectorized_envs as state:
+        for i in range(4000):
+            actions = np.ones((1, 1), dtype=np.int)*0
             state, reward, done = vectorized_envs.step(actions)
-            print(state.shape, reward.shape, done.shape)
+            # print(state, reward, done)

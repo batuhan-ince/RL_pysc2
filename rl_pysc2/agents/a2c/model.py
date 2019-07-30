@@ -71,16 +71,24 @@ class A2C(nn.Module):
                 self._queue[self.cycle] = element
                 self.cycle = (self.cycle + 1) % self.capacity
 
+        def __reversed__(self):
+            if self.size < 1:
+                raise RuntimeError("Queue has less than 2 element!")
+            for i in range(self.size - 1):
+                i_0 = (self.cycle - i - 2) % self.size
+                i_1 = (self.cycle - i - 1) % self.size
+                yield (*self._queue[i_0][:3], self._queue[i_1][0])
+
         def __iter__(self):
             if self.size < 1:
                 raise RuntimeError("Queue has less than 2 element!")
             for i in range(self.size - 1):
-                i_0 = (self.cycle + i) % self.size
-                i_1 = (self.cycle + i + 1) % self.size
-                yield (*self._queue[i_0][:3], self._queue[i_1][0])
+                i = (self.cycle + i) % self.size
+                yield (self._queue[i][0], *self._queue[i][3:])
 
-        def get(self):
-            return self._queue[self.cycle]
+        @property
+        def last_value(self):
+            return self._queue[self.cycle - 1][0]
 
     def __init__(self, network, nstep, optimizer):
         super(A2C, self).__init__()
@@ -91,6 +99,7 @@ class A2C(nn.Module):
         # transitions in the queue at any time. This is because we need the
         # last next_state for TD calculations
         self.queue = self.TransitionQueue(nstep + 1)
+        self.update_cycle = self.nstep
 
     def forward(self, state):
         """ Generate distribution of the policy. Log probability, entropy and
@@ -145,21 +154,28 @@ class A2C(nn.Module):
         Return:
             - loss
         """
-        value, reward, done, log_prob, entropy = self.queue.get()
-        returns, gae = self._gae_and_return(gamma, tau)
+        loss = 0.0
+        returns, gaes = self._gae_and_return(gamma, tau)
 
-        # value_loss = torch.nn.functional.mse_loss(value, returns)
-        value_loss = torch.pow(value - returns, 2)
-        policy_loss = log_prob * gae + entropy * beta
+        value_loss = 0
+        policy_gain = 0
+        entropy_gain = 0
 
-        # print(value_loss.sqrt())
+        for n_return, gae, (value, log_prob, entropy) in zip(
+                returns, gaes, self.queue):
 
-        loss = value_loss.mean() - policy_loss.mean()
+            value_loss += torch.nn.functional.smooth_l1_loss(
+                value.flatten(), n_return)
+            policy_gain += -log_prob.flatten() * gae
+            entropy_gain += -entropy.flatten() * beta
+
+        loss += (value_loss.mean() + policy_gain.mean() + entropy_gain.mean())
+
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
 
-        return value_loss.mean().item(), policy_loss.mean().item()
+        return value_loss.detach(), policy_gain.detach(), entropy_gain.detach()
 
     def _gae_and_return(self, gamma, tau):
         """ Calculate n-step generalized advantage estimation and n step
@@ -181,31 +197,40 @@ class A2C(nn.Module):
                 - n_return: N step return
                 - gae: N step Generalized advantage estimation
         """
-        n_return = 0
-        gae = 0.0
-        # Masks are used in order to leave out rewards after termination and
-        # values before and after termination
-        value_mask = 1.0
-        reward_mask = 1.0
-        # Since we traverse the queue begining to end we need to multiply
-        # gamma and tau at each iteration by themselves
-        _gamma = 1.0
-        _tau = 1.0
 
-        for value, reward, done, next_value in self.queue:
-            n_return += reward*reward_mask*_gamma
-            value_mask *= (1 - done)
-            gae += (next_value*gamma*value_mask + reward - value)*(
-                _gamma*_tau*reward_mask)
-            # If done is 1 then reward_mask becomes zero
-            reward_mask *= (1 - done)
-            _gamma *= gamma
-            _tau *= tau
-        # If no termination occured we add the last next_value to the return
-        value_mask = reward_mask
-        n_return += value_mask*next_value*_gamma
+        last_value = self.queue.last_value
+        batch_size = last_value.shape[0]
+        try:
+            self.running_return_mean
+        except AttributeError:
+            self.running_return_mean = 0
+            self.running_return_var = 0
 
-        return n_return.detach(), gae.detach()
+        gae_array = torch.zeros(self.nstep, batch_size, dtype=torch.float32)
+        n_return_array = torch.zeros(
+            self.nstep, batch_size, dtype=torch.float32)
+
+        n_return = last_value.detach()
+        gae = 0
+
+        for i, (value, reward, done, next_value) in enumerate(
+                reversed(self.queue)):
+            self.running_return_mean = self.running_return_mean*0.95 \
+                + 0.05*n_return
+            self.running_return_var = self.running_return_var*0.95 \
+                + 0.05*torch.pow(n_return - self.running_return_mean, 2)
+            n_return = (1 - done)*n_return*gamma + reward
+            n_return = (n_return - self.running_return_mean) \
+                / (torch.sqrt(self.running_return_var) + 1e-7)
+
+            delta = gamma*next_value*(1-done) + reward - value
+            gae = (1 - done)*gae*gamma*tau + delta.detach()
+            adv = n_return - value.detach()
+
+            gae_array[-1 - i, :] = adv.flatten()
+            n_return_array[-1 - i, :] = n_return.flatten()
+
+        return n_return_array, gae_array
 
     def add_transition(self, value, reward, done, log_prob, entropy):
         """ Append transitions to the agent's queue. Each element is expected
