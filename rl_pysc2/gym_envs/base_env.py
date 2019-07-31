@@ -47,8 +47,6 @@ class SC2Env(gym.Env):
         # if obs.step_type == StepType.LAST:
         #     self.close()
         #     raise RuntimeError("env.step() is called after the termination. Use env.reset()")
-
-
         self.available_actions = obs.observation['available_actions']
         reward = obs.reward
         self._episode_reward += reward
@@ -81,13 +79,13 @@ class SC2Env(gym.Env):
         screen = obs.observation.feature_screen
         minimap = obs.observation.feature_minimap
         info = obs.observation.player
-        screen = self.spatial_preprocess(screen,features.SCREEN_FEATURES)
+        screen = self.spatial_preprocess(screen, features.SCREEN_FEATURES)
         minimap = self.spatial_preprocess(minimap, features.MINIMAP_FEATURES)
         info = np.log(info + 1)
         return screen, minimap, info
 
     def spatial_preprocess(self, feature_map, feature_info):
-
+        
         frames = []
 
         def _one_hot(input, limit):
