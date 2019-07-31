@@ -3,7 +3,7 @@ import numpy as np
 from collections import namedtuple, deque
 
 
-class A2C(torch.nn.Module):
+class NstepAC(torch.nn.Module):
 
     Transition = namedtuple("Transition",
                             "reward done log_prob value next_value")
@@ -29,6 +29,8 @@ class A2C(torch.nn.Module):
             reward, done, log_prob, value, next_value = self.queue.pop()
             R = R*(1 - done)*gamma + reward
             adv = R - value
+            delta = reward + (1-done)*next_value - value
+            gae = gae*(1-done)*tau*gamma + delta.detach()
 
             value_loss = adv.pow(2) / 2
             policy_gain = -log_prob * adv.detach()
@@ -42,4 +44,3 @@ class A2C(torch.nn.Module):
     def add_trans(self, reward, done, log_prob, value, next_value):
         self.queue.append(self.Transition(reward, done,
                                           log_prob, value, next_value))
-

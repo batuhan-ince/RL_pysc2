@@ -1,9 +1,8 @@
-import torch
 import numpy as np
+import torch
 import gym
 
-from rl_pysc2.agents.a2c.model import A2C
-from rl_pysc2.utils.parallel_envs import ParallelEnv
+from rl_pysc2.agents.nstep_ac.model import NstepAC
 
 
 class Network(torch.nn.Module):
@@ -26,6 +25,7 @@ class Network(torch.nn.Module):
             torch.nn.LayerNorm(128),
             torch.nn.ReLU(),
             torch.nn.Linear(128, 1)
+            # torch.nn.BatchNorm1d(128, affine=True)
         )
 
         gain = torch.nn.init.calculate_gain("relu")
@@ -44,53 +44,48 @@ class Network(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    env_name = "LunarLander-v2"
+    env_name = "CartPole-v0"
     gamma = 0.99
-    nenv = 8   # For stability
-    nstep = 20  # Speed
     tau = 0.99
+    nstep = 20
 
     env = gym.make(env_name)
     in_size = env.observation_space.shape[0]
     out_size = env.action_space.n
     network = Network(in_size, out_size)
     optimizer = torch.optim.Adam(network.parameters(), lr=0.0001)
-    agent = A2C(network, optimizer)
-    device = "cuda"
-    agent.to(device)
-    loss = 0
-    del env
+    agent = NstepAC(network, optimizer)
+    device = "cpu"
 
-    penv = ParallelEnv(nenv, lambda: gym.make(env_name))
-    eps_rewards = np.zeros((nenv, 1))
+    env = gym.make(env_name)
     reward_list = []
+    eps_count = 0
 
     def to_torch(array):
-        if len(array.shape) == 4:
-            array = np.transpose(array, (0, 3, 1, 2))
-        return torch.from_numpy(array).to(device).float()
+        return torch.from_numpy(array).to(device).float().view(1, -1)
 
-    with penv as state:
+    for i in range(1000):
+        eps_reward = 0
+        eps_loss = 0
+        done = False
+        state = env.reset()
         state = to_torch(state)
-        for i in range(100000):
-            for j in range(nstep):
+        while done is False:
+            for i in range(nstep):
                 action, log_prob, value = agent(state)
-                action = action.unsqueeze(1).cpu().numpy()
-                next_state, reward, done = penv.step(action)
+                next_state, reward, done, _ = env.step(action.item())
                 next_state = to_torch(next_state)
-                with torch.no_grad():
-                    _, next_value = agent.network(next_state)
-                agent.add_trans(to_torch(reward), to_torch(done),
-                                log_prob.unsqueeze(1), value,
-                                next_value)
+                # with torch.no_grad():
+                _, next_value = agent.network(next_state)
+                agent.add_trans(reward, done,
+                                log_prob, value, next_value)
+                eps_reward += reward
                 state = next_state
-                for j, d in enumerate(done.flatten()):
-                    eps_rewards[j] += reward[j].item()
-                    if d == 1:
-                        reward_list.append(eps_rewards[j].item())
-                        eps_rewards[j] = 0
-                    print(("Epsiode: {}, Reward: {}, Loss: {}")
-                          .format(len(reward_list)//nenv,
-                                  np.mean(reward_list[-100:]), loss),
-                          end="\r")
+                if done is True:
+                    break
             loss = agent.update(gamma, tau)
+            eps_loss += loss
+        # Update
+        eps_count += 1
+        print(("Episode: {}, Reward: {}, Loss: {}")
+              .format(eps_count, eps_reward, loss), end="\r")
