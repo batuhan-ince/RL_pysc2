@@ -4,31 +4,7 @@ import gym
 import matplotlib.pyplot as plt
 
 from rl_pysc2.agents.reinforce.model import Reinforce
-
-
-class Network(torch.nn.Module):
-
-    def __init__(self, in_size, out_size):
-        super().__init__()
-        self.policynet = torch.nn.Sequential(
-            torch.nn.Linear(in_size, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, 128),
-            torch.nn.ReLU(),
-            torch.nn.Linear(128, out_size)
-        )
-
-        gain = torch.nn.init.calculate_gain("relu")
-
-        def param_init(module):
-            if isinstance(module, torch.nn.Linear):
-                torch.nn.init.xavier_normal_(module.weight, gain)
-                torch.nn.init.zeros_(module.bias)
-        self.apply(param_init)
-
-    def forward(self, state):
-        logits = self.policynet(state)
-        return logits
+from rl_pysc2.networks.common_models import PolicyNet
 
 
 if __name__ == "__main__":
@@ -38,8 +14,8 @@ if __name__ == "__main__":
     env = gym.make(env_name)
     in_size = env.observation_space.shape[0]
     out_size = env.action_space.n
-    network = Network(in_size, out_size)
-    optimizer = torch.optim.Adam(network.parameters(), lr=0.0001)
+    network = PolicyNet(in_size, out_size)
+    optimizer = torch.optim.Adam(network.parameters(), lr=0.001)
     agent = Reinforce(network, optimizer)
     device = "cpu"
 

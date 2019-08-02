@@ -43,3 +43,5 @@ class A2C(torch.nn.Module):
         self.queue.append(self.Transition(reward, done,
                                           log_prob, value, next_value))
 
+    def save_model(self, filename):
+        torch.save(self.state_dict(), open(filename, "wb"))

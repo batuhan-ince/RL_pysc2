@@ -3,11 +3,13 @@ import sys
 import numpy as np
 from absl import flags
 import torch
+import argparse
+import matplotlib.pyplot as plt
 
 from rl_pysc2.gym_envs.base_env import SC2Env
 from rl_pysc2.gym_envs.move_to_beacon import MoveToBeaconEnv
 from rl_pysc2.gym_envs.collect_mineral_shards import CollectMineralEnv
-from rl_pysc2.networks.deepmind_model import Encode, Output
+from rl_pysc2.networks.starcraft_models import ScreenNet
 from rl_pysc2.agents.a2c.model import A2C
 from rl_pysc2.utils.parallel_envs import ParallelEnv
 
@@ -17,45 +19,7 @@ flags.DEFINE_bool("render_sync", False, "Turn on sync rendering.")
 FLAGS(sys.argv)
 
 
-class Network(torch.nn.Module):
-
-    def __init__(self, in_channel, out_size):
-        super().__init__()
-        self.convnet = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channel, 64, 5, 1, padding=2),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 32, 5, 1, padding=2),
-            torch.nn.ReLU(),
-        )
-
-        self.policy = torch.nn.Conv2d(32, 1, 5, 1, padding=2)
-        self.value = torch.nn.Sequential(
-            torch.nn.Linear(64*64*32, 256),
-            torch.nn.ReLU(),
-            torch.nn.Linear(256, 1)
-        )
-        
-        gain = torch.nn.init.calculate_gain("relu")
-
-        def param_init(module):
-            if isinstance(module, torch.nn.Linear):
-                torch.nn.init.xavier_normal_(module.weight, gain)
-                torch.nn.init.zeros_(module.bias)
-            if isinstance(module, torch.nn.Conv2d):
-                torch.nn.init.dirac_(module.weight)
-                torch.nn.init.zeros_(module.bias)                
-        self.apply(param_init)
-
-    def forward(self, state):
-        encode = self.convnet(state)
-
-        value = self.value(encode.reshape(-1, 64*64*32))
-        logits = self.policy(encode).reshape(-1, 64*64)
-
-        return logits, value
-
-
-if __name__ == "__main__":
+def train():
     env = MoveToBeaconEnv()
     # env.settings['visualize'] = True
 
@@ -63,11 +27,13 @@ if __name__ == "__main__":
     nenv = 2   # For stability
     nstep = 20  # Speed
     tau = 0.99
+    n_timesteps = 100000
 
     env = MoveToBeaconEnv()
-    in_size = env.observation_space.shape[0]
-    out_size = env.action_space.n
-    network = Network(in_size, out_size)
+    in_channel = env.observation_space.shape[0]
+    # action_size = screen_size**2
+    screen_size = int(np.sqrt(env.action_space.n))
+    network = ScreenNet(in_channel, screen_size)
     env.close()
     del env
     optimizer = torch.optim.Adam(network.parameters(), lr=0.0001)
@@ -85,7 +51,7 @@ if __name__ == "__main__":
 
     with penv as state:
         state = to_torch(state)
-        for i in range(100000):
+        for i in range(n_timesteps//nstep):
             for j in range(nstep):
                 action, log_prob, value = agent(state)
                 action = action.unsqueeze(1).cpu().numpy()
@@ -107,3 +73,12 @@ if __name__ == "__main__":
                                   np.mean(reward_list[-100:]), loss),
                           end="\r")
             loss = agent.update(gamma, tau)
+            if i % 10 == 0:
+                agent.save_model("model_parameters.p")
+        plt.plot([np.mean(reward_list[ind:ind+100])
+                  for ind in range(len(reward_list)-100)])
+        plt.savefig("reward.png")
+
+
+if __name__ == "__main__":
+    train()
