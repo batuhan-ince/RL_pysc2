@@ -21,7 +21,7 @@ class A2C(torch.nn.Module):
         log_prob = dist.log_prob(action)
         return action, log_prob, value
 
-    def update(self, gamma, tau):
+    def update(self, gamma):
         R = self.queue[-1].next_value.detach()
         gae = 0
         loss = 0

@@ -13,7 +13,6 @@ if __name__ == "__main__":
     gamma = 0.99
     nenv = 16   # For stability
     nstep = 20  # Speed
-    tau = 0.99
 
     env = gym.make(env_name)
     in_size = env.observation_space.shape[0]
@@ -58,4 +57,4 @@ if __name__ == "__main__":
                           .format(len(reward_list)//nenv,
                                   np.mean(reward_list[-100:]), loss),
                           end="\r")
-            loss = agent.update(gamma, tau)
+            loss = agent.update(gamma)

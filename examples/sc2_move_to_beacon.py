@@ -4,7 +4,8 @@ import numpy as np
 from absl import flags
 import torch
 import argparse
-import matplotlib.pyplot as plt
+import logging
+import lamp
 
 from rl_pysc2.gym_envs.base_env import SC2Env
 from rl_pysc2.gym_envs.move_to_beacon import MoveToBeaconEnv
@@ -22,12 +23,15 @@ FLAGS(sys.argv)
 def train():
     env = MoveToBeaconEnv()
     # env.settings['visualize'] = True
+    logger = logger_config()
 
-    gamma = 0.99
-    nenv = 2   # For stability
-    nstep = 20  # Speed
-    tau = 0.99
-    n_timesteps = 100000
+    hyperparams = dict(
+        gamma=0.99,
+        nenv=2,
+        nstep=20,
+        n_timesteps=100000,
+        lr=0.0001,
+    )
 
     env = MoveToBeaconEnv()
     in_channel = env.observation_space.shape[0]
@@ -36,23 +40,25 @@ def train():
     network = ScreenNet(in_channel, screen_size)
     env.close()
     del env
-    optimizer = torch.optim.Adam(network.parameters(), lr=0.0001)
+    optimizer = torch.optim.Adam(network.parameters(),
+                                 lr=hyperparams["lr"])
     agent = A2C(network, optimizer)
     device = "cuda"
     agent.to(device)
     loss = 0
 
-    penv = ParallelEnv(nenv, MoveToBeaconEnv)
-    eps_rewards = np.zeros((nenv, 1))
+    penv = ParallelEnv(hyperparams["nenv"], MoveToBeaconEnv)
+    eps_rewards = np.zeros((hyperparams["nenv"], 1))
     reward_list = [0]
 
     def to_torch(array):
         return torch.from_numpy(array).to(device).float()
+    logger.hyperparameters(hyperparams, win="Hyperparameters")
 
     with penv as state:
         state = to_torch(state)
-        for i in range(n_timesteps//nstep):
-            for j in range(nstep):
+        for i in range(hyperparams["n_timesteps"]//hyperparams["nstep"]):
+            for j in range(hyperparams["nstep"]):
                 action, log_prob, value = agent(state)
                 action = action.unsqueeze(1).cpu().numpy()
                 next_state, reward, done = penv.step(action)
@@ -68,16 +74,30 @@ def train():
                     if d == 1:
                         reward_list.append(eps_rewards[j].item())
                         eps_rewards[j] = 0
+                        logger.scalar(np.mean(reward_list[-20:]),
+                                      win="reward", trace="Last 20")
+                        logger.scalar(np.mean(reward_list[-50:]),
+                                      win="reward", trace="Last 50")
+                        logger.scalar(np.mean(reward_list[-1:]),
+                                      win="reward", trace="Last 1")
+                        logger.scalar(loss, win="loss")
                     print(("Epsiode: {}, Reward: {}, Loss: {}")
-                          .format(len(reward_list)//nenv,
+                          .format(len(reward_list)//hyperparams["nenv"],
                                   np.mean(reward_list[-100:]), loss),
                           end="\r")
-            loss = agent.update(gamma, tau)
+            loss = agent.update(hyperparams["gamma"])
             if i % 10 == 0:
                 agent.save_model("model_parameters.p")
-        plt.plot([np.mean(reward_list[ind:ind+100])
-                  for ind in range(len(reward_list)-100)])
-        plt.savefig("reward.png")
+
+
+def logger_config():
+    import yaml
+    import logging.config
+    with open('logger_config.yaml', 'r') as f:
+        config = yaml.safe_load(f.read())
+        logging.config.dictConfig(config)
+    logger = logging.getLogger(__name__)
+    return logger
 
 
 if __name__ == "__main__":

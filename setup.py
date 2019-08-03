@@ -18,5 +18,6 @@ setup(
                       "pysc2",
                       "numpy",
                       ],
+    dependency_links=["https://github.com/TolgaOk/LAMP/master"]
     zip_safe=False
 )
