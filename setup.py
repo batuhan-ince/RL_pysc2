@@ -4,7 +4,7 @@ setup(
     # Metadata
     name='RL_pysc2',
     version=0.1,
-    author='Tolga Ok,Emircan Kılıçkaya,Batuhan Ince',
+    author='Emircan Kılıçkaya,Batuhan Ince, Tolga Ok',
     author_email='inceb97@gmail.com',
     url='',
     description='Starcraft II gym environment for reinforcement learning research',
@@ -18,6 +18,6 @@ setup(
                       "pysc2",
                       "numpy",
                       ],
-    dependency_links=["https://github.com/TolgaOk/LAMP/master"]
+    dependency_links=["https://github.com/TolgaOk/LAMP/master"],
     zip_safe=False
 )

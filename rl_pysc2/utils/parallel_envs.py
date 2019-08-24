@@ -143,7 +143,7 @@ class ParallelEnv():
             action = remote.recv()
             if action == "end":
                 break
-            state, reward, done, info = env.step(action)
+            state, reward, done, info = env.step(action.item())
             if done:
                 state = env.reset()
             remote.send((state, reward, done))

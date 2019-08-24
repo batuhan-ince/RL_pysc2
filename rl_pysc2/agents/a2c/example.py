@@ -38,7 +38,7 @@ if __name__ == "__main__":
         state = to_torch(state)
         for i in range(100000):
             for j in range(nstep):
-                action, log_prob, value = agent(state)
+                action, log_prob, value, entropy = agent(state)
                 action = action.unsqueeze(1).cpu().numpy()
                 next_state, reward, done = penv.step(action)
                 next_state = to_torch(next_state)
@@ -46,7 +46,7 @@ if __name__ == "__main__":
                     _, next_value = agent.network(next_state)
                 agent.add_trans(to_torch(reward), to_torch(done),
                                 log_prob.unsqueeze(1), value,
-                                next_value)
+                                next_value, entropy)
                 state = next_state
                 for j, d in enumerate(done.flatten()):
                     eps_rewards[j] += reward[j].item()
@@ -57,4 +57,4 @@ if __name__ == "__main__":
                           .format(len(reward_list)//nenv,
                                   np.mean(reward_list[-100:]), loss),
                           end="\r")
-            loss = agent.update(gamma)
+            loss = agent.update(gamma, beta=0.0)
