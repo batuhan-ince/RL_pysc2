@@ -46,7 +46,14 @@ class A2C(torch.nn.Module):
                                           next_value, entropy))
 
     def save_model(self, filename):
-        torch.save(self.state_dict(), open(filename, "wb"))
+        states = {
+            "network": self.state_dict(),
+            "optimizer": self.optimizer.state_dict()
+        }
+        torch.save(states, open(filename, "wb"))
 
     def load_model(self, filename):
-        self.load_state_dict(torch.load(open(filename, "rb")))
+        states = torch.load(open(filename, "rb"))
+        self.load_state_dict(states["network"])
+        if self.optimizer is not None:
+            self.optimizer.load_state_dict(states["optimizer"])
