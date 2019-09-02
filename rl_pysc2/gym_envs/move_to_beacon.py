@@ -39,6 +39,7 @@ class MoveToBeaconEnv(SC2Env):
 
     def _post_reset(self):
         obs, reward, done, info = self._safe_step([_SELECT_ARMY, _SELECT_ALL])
+        obs = np.array(obs)
         return obs
 
     def step(self, action):
@@ -46,6 +47,7 @@ class MoveToBeaconEnv(SC2Env):
         x = action % 64
         action = [_MOVE_SCREEN, _NOT_QUEUED, [y, x]]
         obs, reward, done, info = self._safe_step(action)
+        obs = np.array(obs)
         return obs, reward, done, info
 
     def preprocess_obs(self, obs):

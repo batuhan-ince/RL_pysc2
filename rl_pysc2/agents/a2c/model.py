@@ -57,3 +57,4 @@ class A2C(torch.nn.Module):
         self.load_state_dict(states["network"])
         if self.optimizer is not None:
             self.optimizer.load_state_dict(states["optimizer"])
+        self.load_state_dict(states)

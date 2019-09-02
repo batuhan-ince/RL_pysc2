@@ -136,19 +136,50 @@ class ScreenNet(torch.nn.Module):
             size will be 64*64
     Note that output size depends on screen_size.
     """
+    class ResidualConv(torch.nn.Module):
+        def __init__(self, in_channel, **kwargs):
+            super().__init__()
+            assert kwargs["out_channels"] == in_channel, ("input channel must"
+                                                          "be the same as out"
+                                                          " channels")
+            self.block = torch.nn.Sequential(
+                torch.nn.Conv2d(**kwargs),
+                torch.nn.InstanceNorm2d(in_channel),
+                torch.nn.ReLU(),
+                torch.nn.Conv2d(**kwargs),
+                torch.nn.InstanceNorm2d(in_channel),
+                torch.nn.ReLU(),
+            )
+
+        def forward(self, x):
+            res_x = self.block(x)
+            return res_x + x
 
     def __init__(self, in_channel, screen_size):
         super().__init__()
+        res_kwargs = {
+            "in_channels": 32,
+            "out_channels": 32,
+            "kernel_size": 3,
+            "stride": 1,
+            "padding": 1,
+        }
         self.convnet = torch.nn.Sequential(
-            torch.nn.Conv2d(in_channel, 64, 5, 1, padding=2),
-            torch.nn.ReLU(),
-            torch.nn.Conv2d(64, 32, 5, 1, padding=2),
-            torch.nn.ReLU(),
+            torch.nn.Conv2d(in_channel, 32, 3, 1, padding=1),
+            self.ResidualConv(32, **res_kwargs),
+            self.ResidualConv(32, **res_kwargs),
+            self.ResidualConv(32, **res_kwargs),
+            self.ResidualConv(32, **res_kwargs)
         )
 
-        self.policy = torch.nn.Conv2d(32, 1, 5, 1, padding=2)
+        self.policy = torch.nn.Sequential(
+            torch.nn.Linear(32*screen_size*screen_size, 256),
+            torch.nn.ReLU(),
+            torch.nn.Linear(256, 2*screen_size)
+        )
+
         self.value = torch.nn.Sequential(
-            torch.nn.Linear(screen_size*screen_size*32, 256),
+            torch.nn.Linear(32*screen_size*screen_size, 256),
             torch.nn.ReLU(),
             torch.nn.Linear(256, 1)
         )
@@ -167,10 +198,9 @@ class ScreenNet(torch.nn.Module):
 
     def forward(self, state):
         encode = self.convnet(state)
+        encode = encode.reshape(encode.shape[0], -1)
 
-        value = self.value(
-            encode.reshape(-1, self.screen_size*self.screen_size*32))
-        logits = self.policy(
-            encode).reshape(-1, self.screen_size*self.screen_size)
+        value = self.value(encode)
+        logits = self.policy(encode)
 
-        return logits, value
+        return logits.split(self.screen_size, dim=-1), value
