@@ -174,6 +174,7 @@ class ScreenNet(torch.nn.Module):
 
         self.policy = torch.nn.Sequential(
             torch.nn.Linear(32*screen_size*screen_size, 256),
+            torch.nn.LayerNorm(256),
             torch.nn.ReLU(),
             torch.nn.Linear(256, 2*screen_size)
         )
@@ -201,6 +202,7 @@ class ScreenNet(torch.nn.Module):
         encode = encode.reshape(encode.shape[0], -1)
 
         value = self.value(encode)
+
         logits = self.policy(encode)
 
         return logits.split(self.screen_size, dim=-1), value

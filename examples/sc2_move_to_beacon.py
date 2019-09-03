@@ -6,6 +6,7 @@ import torch
 import argparse
 import logging
 import lamp
+import time
 
 from rl_pysc2.gym_envs.base_env import SC2Env
 from rl_pysc2.gym_envs.move_to_beacon import MoveToBeaconEnv
@@ -36,22 +37,25 @@ class MultiCategoricalDist:
         for dist in self.dists:
             product *= dist.probs
         log_sum = sum(dist.logits for dist in self.dists)
-        return -(log_sum*product).sum(-1)
+        # return -(log_sum*product).sum(-1)
+        return sum(dist.entropy() for dist in self.dists)
 
 
 class StarcraftAC2(A2C):
     def forward(self, state):
         logits, value = self.network(state)
         dist = MultiCategoricalDist(*logits)
+        #print(torch.std(logits[0]))
         action = dist.sample()
         log_prob = dist.log_prob(*action)
         entropy = dist.entropy()
+        #print("Entropy: {}".format(entropy))
         action = action[0]*64 + action[1]
 
         return action, log_prob, value, entropy
 
 
-def train(param_path, suffix, hyperparams):
+def train(param_path, suffix, hyperparams, load=False):
     env = MoveToBeaconEnv()
     # env.settings['visualize'] = True
     logger = logger_config()
@@ -68,8 +72,8 @@ def train(param_path, suffix, hyperparams):
     agent = StarcraftAC2(network, optimizer)
     device = "cuda"
     agent.to(device)
-    loss = 0
-
+    if load:
+        agent.load_model(param_path)
     penv = ParallelEnv(hyperparams["nenv"], MoveToBeaconEnv)
     eps_rewards = np.zeros((hyperparams["nenv"], 1))
     reward_list = [0]
@@ -101,7 +105,6 @@ def train(param_path, suffix, hyperparams):
                                       win="reward" + suffix, trace="Last 10")
                         logger.scalar(np.mean(reward_list[-50:]),
                                       win="reward" + suffix, trace="Last 50")
-                        logger.scalar(loss, win="loss" + suffix)
                     # print(("Epsiode: {}, Reward: {}, Loss: {}")
                     #       .format(len(reward_list)//hyperparams["nenv"],
                     #               np.mean(reward_list[-50:]), loss),
@@ -109,6 +112,32 @@ def train(param_path, suffix, hyperparams):
             loss = agent.update(hyperparams["gamma"], hyperparams["beta"])
             if i % 10 == 0:
                 agent.save_model(param_path)
+
+def evaluation(param_path):
+    env = MoveToBeaconEnv()
+    env.settings['visualize'] = True
+
+    in_channel = env.observation_space.shape[0]
+    # action_size = screen_size**2
+    screen_size = int(np.sqrt(env.action_space.n))
+    network = ScreenNet(in_channel, screen_size)
+    optimizer = torch.optim.Adam(network.parameters(),
+                                 lr= 0.1)
+    agent = StarcraftAC2(network, optimizer)
+    device = "cuda"
+    agent.to(device)
+    agent.load_model(param_path)
+    def to_torch(array):
+        return torch.from_numpy(array).to(device).float().unsqueeze(0)  
+    done = False
+    state = env.reset()
+    eps_reward = 0
+    while not done:
+        action, log_prob, value, entropy = agent(to_torch(state))
+        action = action.unsqueeze(1).cpu().numpy()
+        state, reward, done,_ = env.step(action)
+        eps_reward += reward   
+    print(eps_reward)
 
 
 def logger_config():
@@ -121,15 +150,15 @@ def logger_config():
     return logger
 
 
-def run():
-    NUM_PROCESSES = 1
+def run(load_params=False):
+    NUM_PROCESSES = 2
     PARAM_DIR = "models/A2C_vanilla/"
     HYPERPARAMS = dict(
         gamma=0.99,
-        nenv=1,
+        nenv=8,
         nstep=20,
         n_timesteps=1000000,
-        lr=0.0001,
+        lr=0.0001 ,
         beta=0.03,
     )
 
@@ -139,7 +168,7 @@ def run():
         param_dir = PARAM_DIR + suffix + "/model.b"
         process = torch.multiprocessing.Process(
             target=train,
-            args=(param_dir, suffix, HYPERPARAMS)
+            args=(param_dir, suffix, HYPERPARAMS, load_params)
         )
         processes.append(process)
         process.start()
@@ -149,4 +178,9 @@ def run():
 
 
 if __name__ == "__main__":
-    run()
+    if len(sys.argv) == 1:
+        run()
+    elif sys.argv[1] in ("train-continue"):
+        run(True)
+    elif sys.argv[1] in ("eval", "evaluation"):
+        evaluation("models/A2C_vanilla/0/model.b")
