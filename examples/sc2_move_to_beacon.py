@@ -15,6 +15,8 @@ from rl_pysc2.networks.starcraft_models import ScreenNet
 from rl_pysc2.agents.a2c.model import A2C
 from rl_pysc2.utils.parallel_envs import ParallelEnv
 
+from knowledgenet import GraphDqnModel
+
 
 FLAGS = flags.FLAGS
 flags.DEFINE_bool("render_sync", False, "Turn on sync rendering.")
@@ -40,31 +42,42 @@ class MultiCategoricalDist:
         # return -(log_sum*product).sum(-1)
         return sum(dist.entropy() for dist in self.dists)
 
+    @property
+    def greedy_action(self):
+        return [torch.argmax(dist.logits, dim=-1) for dist in self.dists]
 
 class StarcraftAC2(A2C):
-    def forward(self, state):
+    def forward(self, state, greedy=False):
         logits, value = self.network(state)
         dist = MultiCategoricalDist(*logits)
-        #print(torch.std(logits[0]))
-        action = dist.sample()
+        # print(torch.std(logits[0]))
+        if greedy:
+            action = dist.greedy_action
+        else:
+            action = dist.sample()
         log_prob = dist.log_prob(*action)
         entropy = dist.entropy()
-        #print("Entropy: {}".format(entropy))
+        # print("Entropy: {}".format(entropy))
         action = action[0]*64 + action[1]
-
         return action, log_prob, value, entropy
+
+
+def adjacency(device):
+    adj_tensor = torch.zeros(1, 5, 5)
+    adj_tensor[0, 1, 3] = 1.0
+    adj_tensor.to(device)
+    return adj_tensor
 
 
 def train(param_path, suffix, hyperparams, load=False):
     env = MoveToBeaconEnv()
-    # env.settings['visualize'] = True
     logger = logger_config()
 
     env = MoveToBeaconEnv()
     in_channel = env.observation_space.shape[0]
-    # action_size = screen_size**2
     screen_size = int(np.sqrt(env.action_space.n))
     network = ScreenNet(in_channel, screen_size)
+    #network = GraphDqnModel(1, 5, screen_size, 128, adjacency)
     env.close()
     del env
     optimizer = torch.optim.Adam(network.parameters(),
@@ -113,14 +126,14 @@ def train(param_path, suffix, hyperparams, load=False):
             if i % 10 == 0:
                 agent.save_model(param_path)
 
-def evaluation(param_path):
+def evaluation(param_path, render=True, episode=1):
     env = MoveToBeaconEnv()
-    env.settings['visualize'] = True
+    env.settings['visualize'] = render
 
     in_channel = env.observation_space.shape[0]
-    # action_size = screen_size**2
     screen_size = int(np.sqrt(env.action_space.n))
     network = ScreenNet(in_channel, screen_size)
+    #network = GraphDqnModel(1, 5, screen_size, 128, adjacency)
     optimizer = torch.optim.Adam(network.parameters(),
                                  lr= 0.1)
     agent = StarcraftAC2(network, optimizer)
@@ -129,16 +142,21 @@ def evaluation(param_path):
     agent.load_model(param_path)
     def to_torch(array):
         return torch.from_numpy(array).to(device).float().unsqueeze(0)  
-    done = False
-    state = env.reset()
-    eps_reward = 0
-    while not done:
-        action, log_prob, value, entropy = agent(to_torch(state))
-        action = action.unsqueeze(1).cpu().numpy()
-        state, reward, done,_ = env.step(action)
-        eps_reward += reward   
-    print(eps_reward)
-
+    rewards = []
+    for i in range(episode):
+        done = False
+        state = env.reset()
+        eps_reward = 0
+        while not done:
+            action, log_prob, value, entropy = agent(to_torch(state), greedy=False)
+            action = action.unsqueeze(1).cpu().numpy()
+            state, reward, done,_ = env.step(action)
+            eps_reward += reward   
+        rewards.append(eps_reward)
+        print(eps_reward)
+    print("Mean Reward: {}\nMax Reward: {}\nSTD: {}\nMin Reward: {}"
+            .format(np.mean(rewards), np.max(rewards), np.std(rewards), np.min(rewards)))
+        
 
 def logger_config():
     import yaml
@@ -152,14 +170,14 @@ def logger_config():
 
 def run(load_params=False):
     NUM_PROCESSES = 2
-    PARAM_DIR = "models/A2C_vanilla/"
+    PARAM_DIR = "models/A2C_graph/"
     HYPERPARAMS = dict(
         gamma=0.99,
         nenv=8,
         nstep=20,
         n_timesteps=1000000,
         lr=0.0001 ,
-        beta=0.03,
+        beta=0,
     )
 
     processes = []
@@ -183,4 +201,4 @@ if __name__ == "__main__":
     elif sys.argv[1] in ("train-continue"):
         run(True)
     elif sys.argv[1] in ("eval", "evaluation"):
-        evaluation("models/A2C_vanilla/0/model.b")
+        evaluation("models/A2C_vanilla/1/model.b", render=False, episode=100)

@@ -14,10 +14,13 @@ class A2C(torch.nn.Module):
         self.optimizer = optimizer
         self.queue = deque()
 
-    def forward(self, state):
+    def forward(self, state, greedy=False):
         logits, value = self.network(state)
         dist = torch.distributions.Categorical(logits=logits)
-        action = dist.sample()
+        if greedy:
+            action = torch.argmax(dist.logit, dim=-1).detach()
+        else:
+            action = dist.sample()
         log_prob = dist.log_prob(action)
         entropy = dist.entropy()
         return action, log_prob, value, entropy
