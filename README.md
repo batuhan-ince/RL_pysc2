@@ -27,6 +27,6 @@ Mini games: Move to Beacon and Collect Mineral Shards (You need to download thes
 
 We mainly followed [StarCraft II: A New Challenge for Reinforcement Learning paper](https://deepmind.com/documents/110/sc2le.pdf)
 
-## [@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya](https://github.com/EmircanKilickaya) & [@TolgaOk](https://github.com/TolgaOk)
+## [@batuhan-ince](https://github.com/batuhan-ince) & [@EmircanKilickaya (In Our Hearts)](https://github.com/EmircanKilickaya) & [@TolgaOk](https://github.com/TolgaOk)
 
  
